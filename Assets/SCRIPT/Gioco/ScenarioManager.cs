@@ -7,12 +7,36 @@ using UnityEngine.InputSystem;
 
 public class ScenarioFlowManager : MonoBehaviour
 {
-    public enum ScenarioState { Idle, Alarmed, Response, Completed, Failed }
+    public enum ScenarioState
+    {
+        Preparazione,
+        Incendio,
+        Allarme,
+        Ripristino,
+        Completato,
+        Fallito
+    }
+
+    private enum ExpectedStep
+    {
+        AttendiIncendio,
+        AttivaAllarme,
+        PrendiEstintore,
+        SpegniIncendio,
+        SpegniAllarme,
+        Fine
+    }
 
     [Header("References (Scenario)")]
     public AlarmSwitch alarmSwitch;
     public FireTarget fireTarget;
     public ExtinguisherSprayer extinguisherSprayer;
+
+    [Header("UI Result (optional)")]
+    public RoundResultUI roundResultUI; // se null usa RoundResultUI.Instance
+
+    [Header("Freeze on End")]
+    public bool freezeOnEnd = true;
 
     [Header("Player Reset")]
     public Transform xrOriginRoot;
@@ -21,48 +45,95 @@ public class ScenarioFlowManager : MonoBehaviour
     public GameObject[] disableDuringReset;
 
     [Header("Object Reset")]
-    [Tooltip("Se assegnato, usa questo come spawn estintore; altrimenti usa la posa iniziale")]
     public Transform extinguisherSpawnPoint;
 
-    [Header("Options")]
-    public bool igniteFireOnRestart = true;
+    [Header("Session Start")]
+    public float fireStartDelaySeconds = 5f;
+    public bool showStartCountdown = true;
 
     [Header("Restart (Keyboard)")]
     public bool allowKeyboardRestart = true;
     public KeyCode restartKey = KeyCode.R;
 
     [Header("Runtime")]
-    public ScenarioState state = ScenarioState.Idle;
+    public ScenarioState state = ScenarioState.Preparazione;
 
-    // Timer sessione
     private float sessionStartTime;
-    public float SessionElapsed => Time.time - sessionStartTime;
+    private bool sessionRunning;
+    private float sessionEndTime = -1f;
 
-    // Metriche minime
-    private float alarmTime = -1f;
-    private float grabTime = -1f;
-    private float completedTime = -1f;
+    private float plannedIgnitionTime = -1f;
 
-    // Contatori
-    private int sprayStartCount = 0;
-    private int sprayStopCount = 0;
+    private bool fireActive = false;
+    private bool alarmOn = false;
 
-    // Pose iniziale estintore
+    private ExpectedStep expectedStep = ExpectedStep.AttendiIncendio;
+
+    private bool isResetting = false;
+    private bool attemptEnded = false;
+
+    private bool extinguisherCollected = false;
+    private string lastFailReason = "";
+
     private Vector3 extinguisherStartPos;
     private Quaternion extinguisherStartRot;
 
-    private Coroutine resetRoutine;
+    private Coroutine flowRoutine;
 
-    public float TimeToAlarm => (alarmTime < 0f) ? -1f : (alarmTime - sessionStartTime);
-    public float TimeToGrab => (grabTime < 0f) ? -1f : (grabTime - sessionStartTime);
-    public float TimeToComplete => (completedTime < 0f) ? -1f : (completedTime - sessionStartTime);
+    private float defaultFixedDeltaTime;
+
+    public bool SessionRunning => sessionRunning;
+
+    public float SessionElapsed
+    {
+        get
+        {
+            if (sessionRunning)
+                return Time.time - sessionStartTime;
+
+            if (sessionStartTime > 0f && sessionEndTime > 0f)
+                return sessionEndTime - sessionStartTime;
+
+            return 0f;
+        }
+    }
+
+    public bool Preparing => !sessionRunning && plannedIgnitionTime > 0f && Time.time < plannedIgnitionTime;
+    public float PreparationRemaining => Preparing ? Mathf.Max(0f, plannedIgnitionTime - Time.time) : 0f;
+
+    private void Awake()
+    {
+        defaultFixedDeltaTime = Time.fixedDeltaTime;
+    }
 
     private void Start()
     {
         CacheExtinguisherStartPose();
-
-        // ✅ Avvio iniziale: messaggio “Sessione avviata”
         RestartSession(isInitialStart: true);
+    }
+
+    private void Update()
+    {
+        if (!allowKeyboardRestart) return;
+
+#if ENABLE_INPUT_SYSTEM
+        if (Keyboard.current != null)
+        {
+            bool pressed = restartKey switch
+            {
+                KeyCode.R => Keyboard.current.rKey.wasPressedThisFrame,
+                KeyCode.Space => Keyboard.current.spaceKey.wasPressedThisFrame,
+                KeyCode.Return => Keyboard.current.enterKey.wasPressedThisFrame,
+                KeyCode.Escape => Keyboard.current.escapeKey.wasPressedThisFrame,
+                _ => false
+            };
+
+            if (pressed) RestartSession(isInitialStart: false);
+        }
+#else
+        if (Input.GetKeyDown(restartKey))
+            RestartSession(isInitialStart: false);
+#endif
     }
 
     private void CacheExtinguisherStartPose()
@@ -82,72 +153,169 @@ public class ScenarioFlowManager : MonoBehaviour
         }
     }
 
-    private void Update()
+    private RoundResultUI ResultUI => roundResultUI != null ? roundResultUI : RoundResultUI.Instance;
+
+    private void FreezeGame(bool freeze)
     {
-        if (!allowKeyboardRestart) return;
+        if (!freezeOnEnd) return;
 
-#if ENABLE_INPUT_SYSTEM
-        if (Keyboard.current == null) return;
-
-        bool pressed = restartKey switch
+        if (freeze)
         {
-            KeyCode.R => Keyboard.current.rKey.wasPressedThisFrame,
-            KeyCode.Space => Keyboard.current.spaceKey.wasPressedThisFrame,
-            KeyCode.Return => Keyboard.current.enterKey.wasPressedThisFrame,
-            KeyCode.Escape => Keyboard.current.escapeKey.wasPressedThisFrame,
-            _ => false
-        };
-
-        if (pressed) RestartSession(isInitialStart: false);
-#endif
+            Time.timeScale = 0f;
+            Time.fixedDeltaTime = 0f;
+        }
+        else
+        {
+            Time.timeScale = 1f;
+            Time.fixedDeltaTime = defaultFixedDeltaTime;
+        }
     }
 
-    private void ShowFeedback(string msg, float seconds = 3f)
+    // ✅ FEEDBACK: solo se feedback ON
+    private void ShowFeedback(string msg, float seconds = 2f)
     {
-        if (ExperimentSettings.FeedbackOn)
-            FeedbackUI.Instance?.ShowTemp(msg, seconds);
+        if (!ExperimentSettings.FeedbackOn) return;
+        FeedbackUI.Instance?.ShowTemp(msg, seconds);
+    }
+
+    // ✅ MESSAGGI GUIDA: SOLO se feedback ON (tu non li vuoi con feedback OFF)
+    private void ShowGuidance(string msg, float seconds = 3f)
+    {
+        if (!ExperimentSettings.FeedbackOn) return;
+        FeedbackUI.Instance?.ShowTempAlways(msg, seconds);
+    }
+
+    // ✅ COUNTDOWN: sempre visibile (anche con feedback OFF)
+    private void ShowCountdown(string msg, float seconds = 1.05f)
+    {
+        FeedbackUI.Instance?.ShowTempAlways(msg, seconds);
+    }
+
+    private void EndAsFailed(string reason)
+    {
+        if (attemptEnded) return;
+
+        attemptEnded = true;
+        lastFailReason = reason;
+
+        if (sessionRunning && sessionStartTime > 0f)
+            sessionEndTime = Time.time;
+
+        sessionRunning = false;
+        state = ScenarioState.Fallito;
+
+        ConsoleLogger.Log("attempt_failed", reason);
+
+        // Pulisce eventuali testi rimasti
+        FeedbackUI.Instance?.Clear();
+
+        // UI finale sempre
+        ResultUI?.ShowFailed(SessionElapsed, reason);
+
+        if (extinguisherSprayer != null)
+            extinguisherSprayer.ForceStopSpray();
+
+        FreezeGame(true);
+    }
+
+    private void EndAsCompleted()
+    {
+        if (attemptEnded) return;
+
+        attemptEnded = true;
+
+        sessionEndTime = Time.time;
+        sessionRunning = false;
+        state = ScenarioState.Completato;
+
+        ConsoleLogger.Log("completed", $"total={SessionElapsed:0.00}s");
+
+        FeedbackUI.Instance?.Clear();
+
+        ResultUI?.ShowCompleted(SessionElapsed);
+
+        FreezeGame(true);
     }
 
     public void RestartSession(bool isInitialStart)
     {
-        // reset timer sessione
-        sessionStartTime = Time.time;
-        ConsoleLogger.SetTimeProvider(() => SessionElapsed);
+        FreezeGame(false);
+        ResultUI?.Hide();
+        FeedbackUI.Instance?.Clear();
 
-        // reset metriche/contatori
-        alarmTime = -1f;
-        grabTime = -1f;
-        completedTime = -1f;
-        sprayStartCount = 0;
-        sprayStopCount = 0;
+        if (flowRoutine != null) StopCoroutine(flowRoutine);
+        flowRoutine = StartCoroutine(RestartFlowRoutine(isInitialStart));
+    }
 
-        // reset stato
-        state = ScenarioState.Idle;
+    private IEnumerator RestartFlowRoutine(bool isInitialStart)
+    {
+        isResetting = true;
+        attemptEnded = false;
 
-        // reset scenario
-        if (alarmSwitch != null) alarmSwitch.ResetAlarm();
+        sessionRunning = false;
+        sessionStartTime = 0f;
+        sessionEndTime = -1f;
+
+        plannedIgnitionTime = -1f;
+
+        fireActive = false;
+        alarmOn = false;
+
+        expectedStep = ExpectedStep.AttendiIncendio;
+
+        extinguisherCollected = false;
+        lastFailReason = "";
+
+        state = ScenarioState.Preparazione;
+
+        if (alarmSwitch != null)
+            alarmSwitch.SetOn(false);
 
         if (fireTarget != null)
-        {
-            if (igniteFireOnRestart) fireTarget.Ignite();
-            else fireTarget.ExtinguishImmediateForIdle();
-        }
+            fireTarget.ExtinguishImmediateForIdle();
 
-        // reset player + oggetti
-        if (resetRoutine != null) StopCoroutine(resetRoutine);
-        resetRoutine = StartCoroutine(ResetRoutine());
+        yield return StartCoroutine(ResetRoutine());
 
-        // log + feedback differenziati
-        if (isInitialStart)
+        isResetting = false;
+
+        plannedIgnitionTime = Time.time + Mathf.Max(0f, fireStartDelaySeconds);
+
+        // Questo lo mostriamo SOLO se feedback ON (tu hai detto solo countdown)
+        ShowGuidance(isInitialStart ? "Sessione avviata: preparati..." : "Sessione riavviata: preparati...", 2.0f);
+
+        // ✅ countdown sempre visibile
+        if (showStartCountdown && fireStartDelaySeconds > 0.5f)
         {
-            ConsoleLogger.Log("start_session");
-            ShowFeedback("Sessione avviata", 2.5f);
+            int seconds = Mathf.CeilToInt(fireStartDelaySeconds);
+            for (int i = seconds; i >= 1; i--)
+            {
+                ShowCountdown($"Incendio tra {i}s", 1.05f);
+                yield return new WaitForSeconds(1f);
+            }
         }
         else
         {
-            ConsoleLogger.Log("restart_session");
-            ShowFeedback("Sessione riavviata", 2f);
+            yield return new WaitForSeconds(Mathf.Max(0f, fireStartDelaySeconds));
         }
+
+        if (fireTarget != null)
+            fireTarget.Ignite();
+
+        fireActive = true;
+        state = ScenarioState.Incendio;
+
+        sessionStartTime = Time.time;
+        sessionRunning = true;
+        sessionEndTime = -1f;
+
+        ConsoleLogger.SetTimeProvider(() => SessionElapsed);
+
+        ConsoleLogger.Log(isInitialStart ? "start_session" : "restart_session");
+
+        // Guida solo se feedback ON
+        ShowGuidance("Incendio attivo. Attiva l'allarme.", 3.0f);
+
+        expectedStep = ExpectedStep.AttivaAllarme;
     }
 
     private IEnumerator ResetRoutine()
@@ -198,7 +366,6 @@ public class ScenarioFlowManager : MonoBehaviour
 
         var extGo = extinguisherSprayer.gameObject;
 
-        // forzo drop/refresh
         extGo.SetActive(false);
         yield return null;
 
@@ -220,50 +387,161 @@ public class ScenarioFlowManager : MonoBehaviour
         ConsoleLogger.Log("extinguisher_pose_reset");
     }
 
-    // ======= EVENTI =======
+    // ===================== EVENTI =====================
 
-    public void OnAlarmTurnedOn()
+    public void OnAlarmChanged(bool isOn)
     {
-        if (state == ScenarioState.Completed || state == ScenarioState.Failed) return;
+        if (isResetting || attemptEnded) return;
 
-        if (alarmTime < 0f) alarmTime = Time.time;
-        if (state == ScenarioState.Idle) state = ScenarioState.Alarmed;
+        if (!fireActive && isOn)
+        {
+            EndAsFailed("hai attivato l'allarme prima dell'inizio dell'incendio");
+            return;
+        }
 
-        ConsoleLogger.Log("alarm_on", $"tAlarm={TimeToAlarm:0.00}s");
-        ShowFeedback("Allarme attivato!", 2.5f);
+        if (isOn)
+        {
+            if (expectedStep != ExpectedStep.AttivaAllarme)
+            {
+                EndAsFailed("hai attivato l'allarme fuori ordine");
+                return;
+            }
+
+            alarmOn = true;
+            state = ScenarioState.Allarme;
+            expectedStep = ExpectedStep.PrendiEstintore;
+
+            ConsoleLogger.Log("alarm_on", $"t={SessionElapsed:0.00}s");
+
+            // ✅ questi NON devono apparire con feedback OFF
+            ShowFeedback("Allarme attivato", 2.5f);
+            ShowGuidance("Prendi l'estintore.", 2.5f);
+            return;
+        }
+
+        alarmOn = false;
+
+        if (fireActive)
+        {
+            state = ScenarioState.Incendio;
+            EndAsFailed("hai spento l'allarme mentre l'incendio era ancora attivo");
+            return;
+        }
+
+        if (expectedStep != ExpectedStep.SpegniAllarme)
+        {
+            EndAsFailed("hai spento l'allarme fuori ordine");
+            return;
+        }
+
+        expectedStep = ExpectedStep.Fine;
+        EndAsCompleted();
     }
 
     public void OnExtinguisherGrabbed()
     {
-        if (state == ScenarioState.Completed || state == ScenarioState.Failed) return;
+        if (isResetting || attemptEnded) return;
 
-        if (grabTime < 0f) grabTime = Time.time;
-        if (state == ScenarioState.Alarmed || state == ScenarioState.Idle) state = ScenarioState.Response;
+        if (!fireActive && expectedStep != ExpectedStep.SpegniAllarme && expectedStep != ExpectedStep.Fine)
+        {
+            EndAsFailed("hai preso l'estintore prima dell'inizio dell'incendio");
+            return;
+        }
 
-        ConsoleLogger.Log("extinguisher_grabbed", $"tGrab={TimeToGrab:0.00}s");
-        ShowFeedback("Estintore raccolto", 2f);
+        if (expectedStep == ExpectedStep.PrendiEstintore)
+        {
+            extinguisherCollected = true;
+            expectedStep = ExpectedStep.SpegniIncendio;
+
+            ConsoleLogger.Log("extinguisher_grabbed", $"t={SessionElapsed:0.00}s");
+
+            ShowFeedback("Estintore raccolto", 2.0f);
+            ShowGuidance("Spegni l'incendio.", 2.5f);
+            return;
+        }
+
+        if (extinguisherCollected)
+        {
+            ConsoleLogger.Log("extinguisher_regrabbed", $"t={SessionElapsed:0.00}s | step={expectedStep}");
+            return;
+        }
+
+        if (expectedStep == ExpectedStep.AttivaAllarme)
+        {
+            EndAsFailed("hai preso l'estintore prima di attivare l'allarme");
+            return;
+        }
+
+        EndAsFailed("hai preso l'estintore in un momento non previsto");
+    }
+
+    public bool CanStartSpray()
+    {
+        if (isResetting || attemptEnded) return false;
+
+        if (!fireActive)
+        {
+            ConsoleLogger.Log("spray_blocked", "fuoco non attivo");
+            return false;
+        }
+
+        if (expectedStep != ExpectedStep.SpegniIncendio)
+        {
+            EndAsFailed("hai provato a spruzzare prima di attivare l'allarme e prendere l'estintore");
+            return false;
+        }
+
+        return true;
     }
 
     public void OnSprayStart()
     {
-        sprayStartCount++;
-        ConsoleLogger.Log("spray_start", $"count={sprayStartCount}");
+        if (!sessionRunning || attemptEnded) return;
+        ConsoleLogger.Log("spray_start", $"t={SessionElapsed:0.00}s");
     }
 
     public void OnSprayStop()
     {
-        sprayStopCount++;
-        ConsoleLogger.Log("spray_stop", $"count={sprayStopCount}");
+        if (!sessionRunning || attemptEnded) return;
+        ConsoleLogger.Log("spray_stop", $"t={SessionElapsed:0.00}s");
     }
 
     public void OnFireExtinguished()
     {
-        if (completedTime < 0f) completedTime = Time.time;
-        state = ScenarioState.Completed;
+        if (isResetting || attemptEnded) return;
+        if (!fireActive) return;
 
-        ConsoleLogger.Log("fire_extinguished",
-            $"total={TimeToComplete:0.00}s | alarm={TimeToAlarm:0.00}s | grab={TimeToGrab:0.00}s | sprayStart={sprayStartCount}");
+        if (expectedStep != ExpectedStep.SpegniIncendio)
+        {
+            EndAsFailed("incendio spento in uno stato non previsto (ordine errato)");
+            return;
+        }
 
-        ShowFeedback("Fuoco spento!", 5f);
+        fireActive = false;
+
+        ConsoleLogger.Log("fire_extinguished", $"t={SessionElapsed:0.00}s");
+
+        if (alarmOn)
+        {
+            state = ScenarioState.Ripristino;
+            expectedStep = ExpectedStep.SpegniAllarme;
+
+            ShowFeedback("Incendio spento", 3.0f);
+            ShowGuidance("Incendio spento. Spegni l'allarme.", 3.0f);
+        }
+        else
+        {
+            EndAsFailed("hai spento l'incendio senza aver attivato l'allarme");
+        }
+    }
+
+    public void OnExtinguisherEmpty()
+    {
+        if (isResetting || attemptEnded) return;
+
+        if (fireActive)
+        {
+            EndAsFailed("Estintore scarico mentre l'incendio era ancora attivo");
+        }
     }
 }

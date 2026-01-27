@@ -1,4 +1,4 @@
-using UnityEngine;
+ï»¿using UnityEngine;
 using TMPro;
 
 public class FeedbackUI : MonoBehaviour
@@ -6,25 +6,38 @@ public class FeedbackUI : MonoBehaviour
     public static FeedbackUI Instance { get; private set; }
 
     [Header("UI")]
-    public TMP_Text text; // puoi lasciarlo vuoto: auto-find
-
-    private float lastShowTime;
+    public TMP_Text text;
 
     private void Awake()
     {
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
         Instance = this;
 
         if (text == null)
             text = GetComponentInChildren<TMP_Text>(true);
 
-        if (text != null) text.text = "";
+        Clear();
     }
 
     public void Show(string msg)
     {
-        lastShowTime = Time.time;
-        if (text != null) text.text = msg;
+        if (text == null) return;
+        text.gameObject.SetActive(true);
+        text.text = msg;
     }
+
+    public void Clear()
+    {
+        if (text == null) return;
+        text.text = "";
+        text.gameObject.SetActive(true);
+    }
+
+    private void ClearLater() => Clear();
 
     public void ShowTemp(string msg, float seconds = 3f)
     {
@@ -33,10 +46,11 @@ public class FeedbackUI : MonoBehaviour
         Invoke(nameof(ClearLater), seconds);
     }
 
-    private void ClearLater()
+    // Sempre visibile (indipendente da Feedback ON/OFF)
+    public void ShowTempAlways(string msg, float seconds = 3f)
     {
-        // cancella solo se non è stato aggiornato nel frattempo
-        if (Time.time - lastShowTime >= 0.9f)
-            Show("");
+        Show(msg);
+        CancelInvoke(nameof(ClearLater));
+        Invoke(nameof(ClearLater), seconds);
     }
 }

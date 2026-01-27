@@ -1,17 +1,21 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 public class ExperimentSettings : MonoBehaviour
 {
     public static ExperimentSettings Instance { get; private set; }
 
     [Header("Experiment Condition")]
-    public bool feedbackOn = true;
+    [SerializeField] private bool feedbackOn = true;
+
+    public static bool FeedbackOn => Instance != null && Instance.feedbackOn;
 
     private void Awake()
     {
         if (Instance != null && Instance != this)
         {
-            Debug.LogWarning("[ExperimentSettings] Duplicate found -> destroying new one.");
+            // Importantissimo: se arrivi da una "scena impostazioni" con un duplicato,
+            // copia il valore nel singleton vero e poi distruggi il duplicato.
+            Instance.feedbackOn = feedbackOn;
             Destroy(gameObject);
             return;
         }
@@ -22,5 +26,20 @@ public class ExperimentSettings : MonoBehaviour
         Debug.Log($"[ExperimentSettings] Awake. feedbackOn={feedbackOn}");
     }
 
-    public static bool FeedbackOn => Instance != null && Instance.feedbackOn;
+    public void SetFeedbackOn(bool on)
+    {
+        feedbackOn = on;
+        Debug.Log($"[ExperimentSettings] SetFeedbackOn -> {feedbackOn}");
+    }
+
+    public static void SetFeedback(bool on)
+    {
+        if (Instance == null)
+        {
+            Debug.LogWarning("[ExperimentSettings] SetFeedback called but Instance is null.");
+            return;
+        }
+
+        Instance.SetFeedbackOn(on);
+    }
 }

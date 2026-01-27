@@ -6,39 +6,41 @@ public class AlarmSwitch : MonoBehaviour
     public Light alarmLight;
     public AudioSource alarmAudio;
 
+    [Header("Flow (optional, auto-find)")]
+    public ScenarioFlowManager flow;
+
     [Header("State")]
     public bool isOn;
 
-    private ScenarioFlowManager flow;
-
     private void Awake()
     {
-        flow = FindObjectOfType<ScenarioFlowManager>();
+        if (flow == null) flow = FindObjectOfType<ScenarioFlowManager>();
     }
 
     public void Toggle()
     {
-        isOn = !isOn;
+        SetOn(!isOn);
+    }
+
+    public void SetOn(bool on)
+    {
+        isOn = on;
 
         if (alarmLight != null) alarmLight.enabled = isOn;
 
         if (alarmAudio != null)
         {
-            if (isOn) alarmAudio.Play();
-            else alarmAudio.Stop();
+            if (isOn)
+            {
+                if (!alarmAudio.isPlaying) alarmAudio.Play();
+            }
+            else
+            {
+                if (alarmAudio.isPlaying) alarmAudio.Stop();
+            }
         }
 
-        if (isOn)
-        {
-            if (flow == null) flow = FindObjectOfType<ScenarioFlowManager>();
-            flow?.OnAlarmTurnedOn();
-        }
-    }
-
-    public void ResetAlarm()
-    {
-        isOn = false;
-        if (alarmLight != null) alarmLight.enabled = false;
-        if (alarmAudio != null) alarmAudio.Stop();
+        if (flow == null) flow = FindObjectOfType<ScenarioFlowManager>();
+        flow?.OnAlarmChanged(isOn);
     }
 }
