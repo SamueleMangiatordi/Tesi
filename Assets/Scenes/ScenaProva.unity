@@ -7396,6 +7396,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ExperimentSettings
   feedbackOn: 1
+  fileLoggingOn: 1
 --- !u!4 &1296979886
 Transform:
   m_ObjectHideFlags: 0
@@ -8623,7 +8624,6 @@ MonoBehaviour:
   bodyText: {fileID: 488938431}
   showRestartHint: 1
   restartHint: Premi R per riavviare
-  sessionHudRoot: {fileID: 800710501}
 --- !u!225 &1906968726
 CanvasGroup:
   m_ObjectHideFlags: 0

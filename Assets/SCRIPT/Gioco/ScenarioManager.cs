@@ -206,6 +206,9 @@ public class ScenarioFlowManager : MonoBehaviour
 
         ConsoleLogger.Log("attempt_failed", reason);
 
+        ExperimentFileLogger.EndAttempt("failed", SessionElapsed, reason);
+
+
         // Pulisce eventuali testi rimasti
         FeedbackUI.Instance?.Clear();
 
@@ -229,6 +232,8 @@ public class ScenarioFlowManager : MonoBehaviour
         state = ScenarioState.Completato;
 
         ConsoleLogger.Log("completed", $"total={SessionElapsed:0.00}s");
+
+        ExperimentFileLogger.EndAttempt("completed", SessionElapsed);
 
         FeedbackUI.Instance?.Clear();
 
@@ -309,6 +314,10 @@ public class ScenarioFlowManager : MonoBehaviour
         sessionEndTime = -1f;
 
         ConsoleLogger.SetTimeProvider(() => SessionElapsed);
+
+        // inizio log su file (un tentativo = una sessione)
+        ExperimentFileLogger.BeginAttempt(ExperimentSettings.FeedbackOn, ExperimentSettings.FileLoggingOn);
+
 
         ConsoleLogger.Log(isInitialStart ? "start_session" : "restart_session");
 
@@ -413,7 +422,9 @@ public class ScenarioFlowManager : MonoBehaviour
 
             ConsoleLogger.Log("alarm_on", $"t={SessionElapsed:0.00}s");
 
-            // ✅ questi NON devono apparire con feedback OFF
+            ExperimentFileLogger.MarkAlarm(SessionElapsed);
+
+            //questi NON devono apparire con feedback OFF
             ShowFeedback("Allarme attivato", 2.5f);
             ShowGuidance("Prendi l'estintore.", 2.5f);
             return;
@@ -455,6 +466,8 @@ public class ScenarioFlowManager : MonoBehaviour
 
             ConsoleLogger.Log("extinguisher_grabbed", $"t={SessionElapsed:0.00}s");
 
+            ExperimentFileLogger.MarkGrab(SessionElapsed);
+
             ShowFeedback("Estintore raccolto", 2.0f);
             ShowGuidance("Spegni l'incendio.", 2.5f);
             return;
@@ -462,6 +475,7 @@ public class ScenarioFlowManager : MonoBehaviour
 
         if (extinguisherCollected)
         {
+            ExperimentFileLogger.MarkRegrab(SessionElapsed);
             ConsoleLogger.Log("extinguisher_regrabbed", $"t={SessionElapsed:0.00}s | step={expectedStep}");
             return;
         }
@@ -482,6 +496,9 @@ public class ScenarioFlowManager : MonoBehaviour
         if (!fireActive)
         {
             ConsoleLogger.Log("spray_blocked", "fuoco non attivo");
+
+            ExperimentFileLogger.MarkSprayBlocked(SessionElapsed, "fuoco_non_attivo");
+
             return false;
         }
 
@@ -498,12 +515,16 @@ public class ScenarioFlowManager : MonoBehaviour
     {
         if (!sessionRunning || attemptEnded) return;
         ConsoleLogger.Log("spray_start", $"t={SessionElapsed:0.00}s");
+
+        ExperimentFileLogger.MarkSprayStart(SessionElapsed);
     }
 
     public void OnSprayStop()
     {
         if (!sessionRunning || attemptEnded) return;
         ConsoleLogger.Log("spray_stop", $"t={SessionElapsed:0.00}s");
+
+        ExperimentFileLogger.MarkSprayStop(SessionElapsed);
     }
 
     public void OnFireExtinguished()
@@ -520,6 +541,8 @@ public class ScenarioFlowManager : MonoBehaviour
         fireActive = false;
 
         ConsoleLogger.Log("fire_extinguished", $"t={SessionElapsed:0.00}s");
+
+        ExperimentFileLogger.MarkFireOut(SessionElapsed);
 
         if (alarmOn)
         {

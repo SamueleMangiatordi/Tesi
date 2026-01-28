@@ -6,8 +6,12 @@ public class ExperimentSettings : MonoBehaviour
 
     [Header("Experiment Condition")]
     [SerializeField] private bool feedbackOn = true;
+    [Tooltip("Se true, salva CSV/JSON su disco. La scelta viene letta SOLO all'inizio del tentativo.")]
+    [SerializeField] private bool fileLoggingOn = true;
 
     public static bool FeedbackOn => Instance != null && Instance.feedbackOn;
+    public static bool FileLoggingOn => Instance != null && Instance.fileLoggingOn;
+
 
     private void Awake()
     {
@@ -32,6 +36,13 @@ public class ExperimentSettings : MonoBehaviour
         Debug.Log($"[ExperimentSettings] SetFeedbackOn -> {feedbackOn}");
     }
 
+    public void SetFileLoggingOn(bool on)
+    {
+        fileLoggingOn = on;
+        Debug.Log($"[ExperimentSettings] SetFileLoggingOn -> {fileLoggingOn}");
+    }
+
+
     public static void SetFeedback(bool on)
     {
         if (Instance == null)
@@ -41,5 +52,11 @@ public class ExperimentSettings : MonoBehaviour
         }
 
         Instance.SetFeedbackOn(on);
+    }
+
+    public static void SetFileLogging(bool on)
+    {
+        if (Instance == null) return;
+        Instance.SetFileLoggingOn(on);
     }
 }

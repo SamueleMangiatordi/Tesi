@@ -197,6 +197,9 @@ public class ExtinguisherSprayer : MonoBehaviour
         safetyPinRemoved = true;
         ApplySafetyPinVisual();
 
+        if (flow != null)
+            ExperimentFileLogger.MarkPin(flow.SessionElapsed);
+
         // Solo se feedback ON
         if (ExperimentSettings.FeedbackOn)
             FeedbackUI.Instance?.ShowTemp("Sicura rimossa", 1.5f);
