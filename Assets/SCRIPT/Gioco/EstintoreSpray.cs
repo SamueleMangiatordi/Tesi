@@ -15,7 +15,7 @@ public class ExtinguisherSprayer : MonoBehaviour
 
     [Header("Optional Visual: Safety Pin Object")]
     [Tooltip("Se hai un GameObject che rappresenta la sicura, assegnalo qui per nasconderlo quando viene rimossa.")]
-    public GameObject safetyPinVisual;
+    [SerializeField] private GameObject safetyPinVisual;
 
     [Header("Safety Pin")]
     public bool requireSafetyPin = true;
@@ -107,7 +107,14 @@ public class ExtinguisherSprayer : MonoBehaviour
         {
             var fire = hit.collider.GetComponentInParent<FireTarget>();
             if (fire != null)
-                fire.ApplyExtinguish(extinguishRate * Time.deltaTime);
+            {
+      
+                float mult = 1f;
+                
+                fire.ApplyExtinguish(extinguishRate * mult * Time.deltaTime);
+
+            }
+
         }
     }
 
@@ -131,7 +138,7 @@ public class ExtinguisherSprayer : MonoBehaviour
         chargeRemaining = maxChargeSeconds;
         emptyNotified = false;
 
-        // ✅ reset sicura
+        // reset sicura
         safetyPinRemoved = false;
         ApplySafetyPinVisual();
     }
@@ -145,13 +152,10 @@ public class ExtinguisherSprayer : MonoBehaviour
 
     public void StartSpray()
     {
-        // ✅ blocco se la sicura non è rimossa
         if (requireSafetyPin && !safetyPinRemoved)
         {
-            // Mostra solo se feedback ON (come da tua regola)
             if (ExperimentSettings.FeedbackOn)
-                FeedbackUI.Instance?.ShowTemp("Rimuovi la sicura (P) prima di spruzzare", 2.0f);
-
+                FeedbackUI.Instance?.ShowTemp("Rimuovi la sicura prima di spruzzare", 2.0f);
             return;
         }
 
@@ -166,22 +170,29 @@ public class ExtinguisherSprayer : MonoBehaviour
             return;
 
         spraying = true;
-        if (sprayParticles != null && !sprayParticles.isPlaying)
-            sprayParticles.Play();
+
+        if (sprayParticles != null)
+        {
+            sprayParticles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            sprayParticles.Play(true);
+        }
 
         flow?.OnSprayStart();
     }
+
 
     public void StopSpray()
     {
         if (!spraying) return;
 
         spraying = false;
+
         if (sprayParticles != null)
-            sprayParticles.Stop(true, ParticleSystemStopBehavior.StopEmitting);
+            sprayParticles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
 
         flow?.OnSprayStop();
     }
+
 
     private void NotifyEmptyOnce()
     {
@@ -194,8 +205,15 @@ public class ExtinguisherSprayer : MonoBehaviour
 
     public void RemoveSafetyPin()
     {
+        // evita doppi trigger
+        if (safetyPinRemoved) return;
+
         safetyPinRemoved = true;
-        ApplySafetyPinVisual();
+        ApplySafetyPinVisual();   // deve nascondere la sicura visiva
+
+        // sicurezza: se flow non è assegnato, recuperalo
+        if (flow == null)
+            flow = FindObjectOfType<ScenarioFlowManager>();
 
         if (flow != null)
             ExperimentFileLogger.MarkPin(flow.SessionElapsed);
@@ -204,12 +222,16 @@ public class ExtinguisherSprayer : MonoBehaviour
         if (ExperimentSettings.FeedbackOn)
             FeedbackUI.Instance?.ShowTemp("Sicura rimossa", 1.5f);
 
+        // debug utile: conferma che questa è la stessa istanza che spruzza
+        Debug.Log($"[PIN] Removed on: {gameObject.name} id={GetInstanceID()} pinRemoved={safetyPinRemoved}");
+
         ConsoleLogger.Log("safety_pin_removed");
     }
+
 
     private void ApplySafetyPinVisual()
     {
         if (safetyPinVisual != null)
-            safetyPinVisual.SetActive(requireSafetyPin && !safetyPinRemoved);
+            safetyPinVisual.SetActive(!safetyPinRemoved);
     }
 }

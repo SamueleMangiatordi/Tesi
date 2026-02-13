@@ -567,4 +567,10 @@ public class ScenarioFlowManager : MonoBehaviour
             EndAsFailed("Estintore scarico mentre l'incendio era ancora attivo");
         }
     }
+
+    public void RestartFromButton()
+    {
+        RestartSession(isInitialStart: false);
+    }
+
 }
