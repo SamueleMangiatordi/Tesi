@@ -1,6 +1,9 @@
 ﻿using UnityEngine;
 using UnityEngine.XR.Interaction.Toolkit;
 using UnityEngine.XR.Interaction.Toolkit.Interactables;
+using UnityEngine.XR.Interaction.Toolkit.Interactors;
+
+
 
 #if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem;
@@ -28,9 +31,27 @@ public class ExtinguisherSprayer : MonoBehaviour
     public float extinguishRate = 1.0f;
     public LayerMask hitMask = ~0;
 
+    [Header("Spray Hit VFX")]
+    public ParticleSystem sprayHitPrefab;
+    public float sprayHitPerSecond = 6f;      // rate limit (es. 10–20)
+    public float sprayHitOffset = 0.01f;       // leggero offset per non “entrare” nel muro
+    private float nextSprayHitTime;
+
     [Header("Charge")]
     public float maxChargeSeconds = 8f;
     public float chargeRemaining;
+
+    [Header("Audio")]
+    public AudioSource sprayAudio;
+
+    [Header("Haptics")]
+    public bool enableHaptics = true;
+    public float hapticAmplitude = 0.25f;   // 0..1
+    public float hapticPulseDuration = 0.05f;
+    public float hapticPulsesPerSecond = 10f;
+
+    private float nextHapticTime;
+    private XRBaseInputInteractor hapticController;
 
     private XRGrabInteractable grab;
     private bool spraying;
@@ -84,6 +105,16 @@ public class ExtinguisherSprayer : MonoBehaviour
         // --- Logica spray ---
         if (!spraying) return;
 
+        if (enableHaptics && hapticController != null && Time.time >= nextHapticTime)
+        {
+            nextHapticTime = Time.time + (1f / Mathf.Max(1f, hapticPulsesPerSecond));
+            hapticController.SendHapticImpulse(hapticAmplitude, hapticPulseDuration);
+        }
+
+        Debug.DrawRay(nozzle.position, nozzle.forward * sprayRange, Color.cyan, 0.02f);
+
+
+
         if (chargeRemaining <= 0f)
         {
             ForceStopSpray();
@@ -106,16 +137,26 @@ public class ExtinguisherSprayer : MonoBehaviour
         if (Physics.SphereCast(ray, sprayRadius, out RaycastHit hit, sprayRange, hitMask, QueryTriggerInteraction.Collide))
         {
             var fire = hit.collider.GetComponentInParent<FireTarget>();
-            if (fire != null)
-            {
-      
-                float mult = 1f;
-                
-                fire.ApplyExtinguish(extinguishRate * mult * Time.deltaTime);
+            if (fire == null) return;
 
+            // opzionale: log solo quando colpisci il fuoco
+            //Debug.Log($"[SPRAY HIT FIRE] {hit.collider.name}");
+            Debug.Log($"[SPRAY HIT] {hit.collider.name}");
+
+
+            if (sprayHitPrefab != null && Time.time >= nextSprayHitTime)
+            {
+                nextSprayHitTime = Time.time + (1f / Mathf.Max(1f, sprayHitPerSecond));
+
+                Vector3 pos = hit.point + hit.normal * sprayHitOffset;
+                Quaternion rot = Quaternion.LookRotation(hit.normal);
+                Instantiate(sprayHitPrefab, pos, rot);
             }
 
+            fire.ApplyExtinguish(extinguishRate * Time.deltaTime);
         }
+
+
     }
 
     private void OnSelectEntered(SelectEnterEventArgs args)
@@ -129,8 +170,19 @@ public class ExtinguisherSprayer : MonoBehaviour
         if (spraying) StopSpray();
     }
 
-    private void OnActivated(ActivateEventArgs args) => StartSpray();
-    private void OnDeactivated(DeactivateEventArgs args) => StopSpray();
+    private void OnActivated(ActivateEventArgs args)
+    {
+        hapticController = args.interactorObject as XRBaseInputInteractor;
+        StartSpray();
+    }
+
+
+    private void OnDeactivated(DeactivateEventArgs args)
+    {
+        StopSpray();
+        hapticController = null;
+    }
+
 
     public void ResetExtinguisher()
     {
@@ -147,7 +199,14 @@ public class ExtinguisherSprayer : MonoBehaviour
     {
         spraying = false;
         if (sprayParticles != null)
+        {
             sprayParticles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+
+            if (sprayAudio != null && sprayAudio.isPlaying)
+                sprayAudio.Stop();
+
+        }
+        
     }
 
     public void StartSpray()
@@ -175,6 +234,10 @@ public class ExtinguisherSprayer : MonoBehaviour
         {
             sprayParticles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
             sprayParticles.Play(true);
+
+            if (sprayAudio != null && !sprayAudio.isPlaying)
+                sprayAudio.Play();
+
         }
 
         flow?.OnSprayStart();
@@ -188,7 +251,16 @@ public class ExtinguisherSprayer : MonoBehaviour
         spraying = false;
 
         if (sprayParticles != null)
+        {
             sprayParticles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+
+            if (sprayAudio != null && sprayAudio.isPlaying)
+                sprayAudio.Stop();
+        }
+            
+
+        
+
 
         flow?.OnSprayStop();
     }
