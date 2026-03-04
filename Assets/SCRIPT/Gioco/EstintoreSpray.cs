@@ -59,6 +59,9 @@ public class ExtinguisherSprayer : MonoBehaviour
 
     private ScenarioFlowManager flow;
 
+    public string extinguisherName; //variabile per identificare l'estintore
+
+
     private void Awake()
     {
         grab = GetComponent<XRGrabInteractable>();
@@ -90,16 +93,15 @@ public class ExtinguisherSprayer : MonoBehaviour
 
     private void Update()
     {
-        // --- Rimozione sicura da tastiera ---
-        if (requireSafetyPin && !safetyPinRemoved)
+        if (requireSafetyPin && !safetyPinRemoved && grab != null && grab.isSelected)
         {
-#if ENABLE_INPUT_SYSTEM
+        #if ENABLE_INPUT_SYSTEM
             if (Keyboard.current != null && safetyPinKey == KeyCode.P && Keyboard.current.pKey.wasPressedThisFrame)
                 RemoveSafetyPin();
-#else
-            if (Input.GetKeyDown(safetyPinKey))
-                RemoveSafetyPin();
-#endif
+        #else
+        if (Input.GetKeyDown(safetyPinKey))
+            RemoveSafetyPin();
+        #endif
         }
 
         // --- Logica spray ---
@@ -110,18 +112,9 @@ public class ExtinguisherSprayer : MonoBehaviour
             nextHapticTime = Time.time + (1f / Mathf.Max(1f, hapticPulsesPerSecond));
             hapticController.SendHapticImpulse(hapticAmplitude, hapticPulseDuration);
         }
-
-        Debug.DrawRay(nozzle.position, nozzle.forward * sprayRange, Color.cyan, 0.02f);
-
-
-
-        if (chargeRemaining <= 0f)
-        {
-            ForceStopSpray();
-            NotifyEmptyOnce();
-            return;
-        }
-
+        if (nozzle != null)
+            Debug.DrawRay(nozzle.position, nozzle.forward * sprayRange, Color.cyan, 0.02f);
+        
         chargeRemaining -= Time.deltaTime;
 
         if (chargeRemaining <= 0f)
@@ -162,7 +155,7 @@ public class ExtinguisherSprayer : MonoBehaviour
     private void OnSelectEntered(SelectEnterEventArgs args)
     {
         if (flow == null) flow = FindObjectOfType<ScenarioFlowManager>();
-        flow?.OnExtinguisherGrabbed();
+        flow?.OnExtinguisherGrabbed(this);
     }
 
     private void OnSelectExited(SelectExitEventArgs args)
@@ -225,7 +218,7 @@ public class ExtinguisherSprayer : MonoBehaviour
         }
 
         if (flow == null) flow = FindObjectOfType<ScenarioFlowManager>();
-        if (flow != null && !flow.CanStartSpray())
+        if (flow != null && !flow.CanStartSpray(this))
             return;
 
         spraying = true;
@@ -243,7 +236,6 @@ public class ExtinguisherSprayer : MonoBehaviour
         flow?.OnSprayStart();
     }
 
-
     public void StopSpray()
     {
         if (!spraying) return;
@@ -257,14 +249,8 @@ public class ExtinguisherSprayer : MonoBehaviour
             if (sprayAudio != null && sprayAudio.isPlaying)
                 sprayAudio.Stop();
         }
-            
-
-        
-
-
         flow?.OnSprayStop();
     }
-
 
     private void NotifyEmptyOnce()
     {
@@ -272,7 +258,7 @@ public class ExtinguisherSprayer : MonoBehaviour
         emptyNotified = true;
 
         if (flow == null) flow = FindObjectOfType<ScenarioFlowManager>();
-        flow?.OnExtinguisherEmpty();
+        flow?.OnExtinguisherEmpty(this);
     }
 
     public void RemoveSafetyPin()

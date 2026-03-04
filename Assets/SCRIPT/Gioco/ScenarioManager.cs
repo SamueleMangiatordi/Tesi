@@ -1,4 +1,6 @@
 ﻿using System.Collections;
+using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
 
 #if ENABLE_INPUT_SYSTEM
@@ -30,7 +32,16 @@ public class ScenarioFlowManager : MonoBehaviour
     [Header("References (Scenario)")]
     public AlarmSwitch alarmSwitch;
     public FireTarget fireTarget;
-    public ExtinguisherSprayer extinguisherSprayer;
+
+    [Header("Extinguishers")]
+    public ExtinguisherSprayer[] extinguishers; // metti qui i 4 estintori da Inspector
+    public Transform[] extinguisherSpawnPoints; // opzionale: 4 spawnpoint (stessa lunghezza)
+
+    private readonly Dictionary<ExtinguisherSprayer, (Vector3 pos, Quaternion rot)> extStartPose
+    = new Dictionary<ExtinguisherSprayer, (Vector3, Quaternion)>();
+
+    private ExtinguisherSprayer currentExt;
+
 
     [Header("UI Result (optional)")]
     public RoundResultUI roundResultUI; // se null usa RoundResultUI.Instance
@@ -44,9 +55,6 @@ public class ScenarioFlowManager : MonoBehaviour
     public Transform playerSpawnPoint;
     public GameObject[] disableDuringReset;
 
-    [Header("Object Reset")]
-    public Transform extinguisherSpawnPoint;
-
     [Header("Session Start")]
     public float fireStartDelaySeconds = 5f;
     public bool showStartCountdown = true;
@@ -57,6 +65,12 @@ public class ScenarioFlowManager : MonoBehaviour
 
     [Header("Runtime")]
     public ScenarioState state = ScenarioState.Preparazione;
+
+    /*public FireManager fireManager; // Riferimento al FireManager
+    public GameObject fireTargetObject; // L'oggetto che rappresenta il fuoco nella scena
+
+    private FireType currentFire;*/
+
 
     private float sessionStartTime;
     private bool sessionRunning;
@@ -75,8 +89,6 @@ public class ScenarioFlowManager : MonoBehaviour
     private bool extinguisherCollected = false;
     private string lastFailReason = "";
 
-    private Vector3 extinguisherStartPos;
-    private Quaternion extinguisherStartRot;
 
     private Coroutine flowRoutine;
 
@@ -108,7 +120,16 @@ public class ScenarioFlowManager : MonoBehaviour
 
     private void Start()
     {
-        CacheExtinguisherStartPose();
+        CacheExtinguishersStartPose();
+
+        /*fireManager = FindObjectOfType<FireManager>();
+        if (fireManager == null)
+        {
+            Debug.LogError("FireManager non trovato nella scena!");
+            return;
+        }
+
+        ActivateRandomFire();*/
         RestartSession(isInitialStart: true);
     }
 
@@ -136,20 +157,28 @@ public class ScenarioFlowManager : MonoBehaviour
 #endif
     }
 
-    private void CacheExtinguisherStartPose()
+    private void CacheExtinguishersStartPose()
     {
-        if (extinguisherSprayer == null) return;
+        extStartPose.Clear();
+        if (extinguishers == null) return;
 
-        if (extinguisherSpawnPoint != null)
+        for (int i = 0; i < extinguishers.Length; i++)
         {
-            extinguisherStartPos = extinguisherSpawnPoint.position;
-            extinguisherStartRot = extinguisherSpawnPoint.rotation;
-        }
-        else
-        {
-            var t = extinguisherSprayer.transform;
-            extinguisherStartPos = t.position;
-            extinguisherStartRot = t.rotation;
+            var ext = extinguishers[i];
+            if (ext == null) continue;
+
+            Transform sp = (extinguisherSpawnPoints != null && i < extinguisherSpawnPoints.Length)
+                ? extinguisherSpawnPoints[i]
+                : null;
+
+            // Imposta posizione e rotazione dall'oggetto spawn
+            Vector3 p = sp != null ? sp.position : ext.transform.position;
+            Quaternion r = sp != null ? sp.rotation : ext.transform.rotation;
+
+            extStartPose[ext] = (p, r);
+
+            // Imposta la posizione e rotazione finale dell'estintore
+            ext.transform.SetPositionAndRotation(p, r);
         }
     }
 
@@ -215,8 +244,7 @@ public class ScenarioFlowManager : MonoBehaviour
         // UI finale sempre
         ResultUI?.ShowFailed(SessionElapsed, reason);
 
-        if (extinguisherSprayer != null)
-            extinguisherSprayer.ForceStopSpray();
+        StopAllSprays();
 
         FreezeGame(true);
     }
@@ -230,6 +258,8 @@ public class ScenarioFlowManager : MonoBehaviour
         sessionEndTime = Time.time;
         sessionRunning = false;
         state = ScenarioState.Completato;
+
+        StopAllSprays();
 
         ConsoleLogger.Log("completed", $"total={SessionElapsed:0.00}s");
 
@@ -288,7 +318,7 @@ public class ScenarioFlowManager : MonoBehaviour
         // Questo lo mostriamo SOLO se feedback ON (tu hai detto solo countdown)
         ShowGuidance(isInitialStart ? "Sessione avviata: preparati..." : "Sessione riavviata: preparati...", 2.0f);
 
-        // ✅ countdown sempre visibile
+        // countdown sempre visibile
         if (showStartCountdown && fireStartDelaySeconds > 0.5f)
         {
             int seconds = Mathf.CeilToInt(fireStartDelaySeconds);
@@ -341,7 +371,7 @@ public class ScenarioFlowManager : MonoBehaviour
         ResetPlayerToSpawn();
         yield return null;
 
-        yield return StartCoroutine(ResetExtinguisherPoseRoutine());
+        yield return StartCoroutine(ResetExtinguishersPoseRoutine());
 
         if (disableDuringReset != null)
         {
@@ -369,31 +399,36 @@ public class ScenarioFlowManager : MonoBehaviour
         ConsoleLogger.Log("spawn_reset");
     }
 
-    private IEnumerator ResetExtinguisherPoseRoutine()
+    private IEnumerator ResetExtinguishersPoseRoutine()
     {
-        if (extinguisherSprayer == null) yield break;
+        if (extinguishers == null) yield break;
 
-        var extGo = extinguisherSprayer.gameObject;
-
-        extGo.SetActive(false);
-        yield return null;
-
-        extinguisherSprayer.transform.SetPositionAndRotation(extinguisherStartPos, extinguisherStartRot);
-
-        extGo.SetActive(true);
-        yield return null;
-
-        extinguisherSprayer.ResetExtinguisher();
-
-        var rb = extinguisherSprayer.GetComponent<Rigidbody>();
-        if (rb != null)
+        foreach (var ext in extinguishers)
         {
-            rb.linearVelocity = Vector3.zero;
-            rb.angularVelocity = Vector3.zero;
-            rb.Sleep();
+            if (ext == null) continue;
+
+            var go = ext.gameObject;
+            go.SetActive(false);
+            yield return null;
+
+            if (extStartPose.TryGetValue(ext, out var pose))
+                ext.transform.SetPositionAndRotation(pose.pos, pose.rot);
+
+            go.SetActive(true);
+            yield return null;
+
+            ext.ResetExtinguisher();
+
+            var rb = ext.GetComponent<Rigidbody>();
+            if (rb != null)
+            {
+                rb.linearVelocity = Vector3.zero;
+                rb.angularVelocity = Vector3.zero;
+                rb.Sleep();
+            }
         }
 
-        ConsoleLogger.Log("extinguisher_pose_reset");
+        ConsoleLogger.Log("extinguishers_pose_reset");
     }
 
     // ===================== EVENTI =====================
@@ -449,9 +484,11 @@ public class ScenarioFlowManager : MonoBehaviour
         EndAsCompleted();
     }
 
-    public void OnExtinguisherGrabbed()
+    public void OnExtinguisherGrabbed(ExtinguisherSprayer ext)
     {
         if (isResetting || attemptEnded) return;
+
+        currentExt = ext;
 
         if (!fireActive && expectedStep != ExpectedStep.SpegniAllarme && expectedStep != ExpectedStep.Fine)
         {
@@ -464,8 +501,7 @@ public class ScenarioFlowManager : MonoBehaviour
             extinguisherCollected = true;
             expectedStep = ExpectedStep.SpegniIncendio;
 
-            ConsoleLogger.Log("extinguisher_grabbed", $"t={SessionElapsed:0.00}s");
-
+            ConsoleLogger.Log("extinguisher_grabbed", $"name={ext.name} t={SessionElapsed:0.00}s");
             ExperimentFileLogger.MarkGrab(SessionElapsed);
 
             ShowFeedback("Estintore raccolto", 2.0f);
@@ -476,7 +512,7 @@ public class ScenarioFlowManager : MonoBehaviour
         if (extinguisherCollected)
         {
             ExperimentFileLogger.MarkRegrab(SessionElapsed);
-            ConsoleLogger.Log("extinguisher_regrabbed", $"t={SessionElapsed:0.00}s | step={expectedStep}");
+            ConsoleLogger.Log("extinguisher_regrabbed", $"name={ext.name} t={SessionElapsed:0.00}s | step={expectedStep}");
             return;
         }
 
@@ -489,16 +525,15 @@ public class ScenarioFlowManager : MonoBehaviour
         EndAsFailed("hai preso l'estintore in un momento non previsto");
     }
 
-    public bool CanStartSpray()
+    public bool CanStartSpray(ExtinguisherSprayer ext)
     {
         if (isResetting || attemptEnded) return false;
 
+        currentExt = ext;
+
         if (!fireActive)
         {
-            ConsoleLogger.Log("spray_blocked", "fuoco non attivo");
-
             ExperimentFileLogger.MarkSprayBlocked(SessionElapsed, "fuoco_non_attivo");
-
             return false;
         }
 
@@ -509,6 +544,12 @@ public class ScenarioFlowManager : MonoBehaviour
         }
 
         return true;
+    }
+    private void StopAllSprays()
+    {
+        if (extinguishers == null) return;
+        foreach (var ext in extinguishers)
+            ext?.ForceStopSpray();
     }
 
     public void OnSprayStart()
@@ -558,14 +599,12 @@ public class ScenarioFlowManager : MonoBehaviour
         }
     }
 
-    public void OnExtinguisherEmpty()
+    public void OnExtinguisherEmpty(ExtinguisherSprayer ext)
     {
         if (isResetting || attemptEnded) return;
 
         if (fireActive)
-        {
-            EndAsFailed("Estintore scarico mentre l'incendio era ancora attivo");
-        }
+            EndAsFailed($"Estintore scarico mentre l'incendio era ancora attivo ({ext.name})");
     }
 
     public void RestartFromButton()
@@ -573,4 +612,44 @@ public class ScenarioFlowManager : MonoBehaviour
         RestartSession(isInitialStart: false);
     }
 
+    /*public void ActivateRandomFire()
+    {
+        fireManager.StartFire(); // Imposta l'incendio casuale
+        FireType currentFire = fireManager.GetCurrentFire(); // Ottieni l'incendio attivo
+
+        // Recupera il riferimento a FireTarget
+        FireTarget target = FindObjectOfType<FireTarget>(); // Ottieni il FireTarget dalla scena
+
+        if (target != null && currentFire != null)
+        {
+            currentFire.fireTarget = target; // Imposta il riferimento del FireTarget
+
+            fireManager.PlaceFire(currentFire); // Posiziona l'incendio nella scena
+            target.Ignite(); // Accendi il fuoco visivamente
+        }
+        else
+        {
+            Debug.LogError("fireTarget o currentFire non sono stati trovati!");
+        }
+    }
+
+    // Quando l'utente seleziona un estintore
+    public void OnExtinguisherUsed(GameObject extinguisherUsed)
+    {
+        // Verifica se l'estintore usato è quello giusto
+        if (extinguisherUsed == fireManager.GetCurrentFire().recommendedExtinguisher ||
+            System.Array.Exists(fireManager.GetCurrentFire().alternativeExtinguishers, element => element == extinguisherUsed))
+        {
+            Debug.Log("Fuoco spento con successo!");
+            FireTarget target = fireManager.GetCurrentFire().fireTarget; // Ottieni il target del fuoco
+            if (target != null)
+            {
+                target.ApplyExtinguish(1f);  // Applicare l'estinzione con una quantità (1f o altro valore che vuoi)
+            }
+        }
+        else
+        {
+            Debug.Log("Estintore sbagliato! Il fuoco non si spegne.");
+        }
+    }*/
 }
