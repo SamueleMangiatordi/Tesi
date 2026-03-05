@@ -12860,6 +12860,7 @@ MonoBehaviour:
   maxChargeSeconds: 8
   chargeRemaining: 0
   sprayAudio: {fileID: 698172916}
+  extinguisherType: 3
   enableHaptics: 1
   hapticAmplitude: 0.25
   hapticPulseDuration: 0.05
@@ -13810,6 +13811,7 @@ MonoBehaviour:
   maxChargeSeconds: 8
   chargeRemaining: 0
   sprayAudio: {fileID: 841314188}
+  extinguisherType: 2
   enableHaptics: 1
   hapticAmplitude: 0.25
   hapticPulseDuration: 0.05
@@ -14402,7 +14404,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NewMonoBehaviourScript
   alarmSwitch: {fileID: 29952140}
-  fireTarget: {fileID: 1486912746}
+  fireTargets:
+  - {fileID: 1486912746}
+  - {fileID: 1392312560}
+  - {fileID: 1890098522}
+  - {fileID: 2122385303}
   extinguishers:
   - {fileID: 698172917}
   - {fileID: 1892689055}
@@ -20389,7 +20395,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &1392312560
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -20402,6 +20408,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: aba866c990fc54a4e8171e43d71fef84, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FireTarget
+  fireClass: 1
+  recommendedExtinguishers: 01000000
+  secondaryExtinguishers: 0300000002000000
+  notRecommendedExtinguishers: 00000000
   maxFireHealth: 3
   currentFireHealth: 0
   fireVisualRoot: {fileID: 101923801}
@@ -20778,6 +20788,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: aba866c990fc54a4e8171e43d71fef84, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FireTarget
+  fireClass: 0
+  recommendedExtinguishers: 00000000
+  secondaryExtinguishers: 0100000002000000
+  notRecommendedExtinguishers: 03000000
   maxFireHealth: 3
   currentFireHealth: 0
   fireVisualRoot: {fileID: 771647104}
@@ -36325,6 +36339,7 @@ MonoBehaviour:
   maxChargeSeconds: 8
   chargeRemaining: 0
   sprayAudio: {fileID: 1720333657}
+  extinguisherType: 1
   enableHaptics: 1
   hapticAmplitude: 0.25
   hapticPulseDuration: 0.05
@@ -37069,7 +37084,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &1890098522
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -37082,6 +37097,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: aba866c990fc54a4e8171e43d71fef84, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FireTarget
+  fireClass: 2
+  recommendedExtinguishers: 02000000
+  secondaryExtinguishers: 03000000
+  notRecommendedExtinguishers: 0000000001000000
   maxFireHealth: 3
   currentFireHealth: 0
   fireVisualRoot: {fileID: 1745878062}
@@ -37331,6 +37350,7 @@ MonoBehaviour:
   maxChargeSeconds: 8
   chargeRemaining: 0
   sprayAudio: {fileID: 1892689054}
+  extinguisherType: 0
   enableHaptics: 1
   hapticAmplitude: 0.25
   hapticPulseDuration: 0.05
@@ -48006,12 +48026,12 @@ GameObject:
   - component: {fileID: 2122385304}
   - component: {fileID: 2122385303}
   m_Layer: 0
-  m_Name: Fuoco D
+  m_Name: Fuoco E
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &2122385303
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -48024,6 +48044,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: aba866c990fc54a4e8171e43d71fef84, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FireTarget
+  fireClass: 3
+  recommendedExtinguishers: 03000000
+  secondaryExtinguishers: 
+  notRecommendedExtinguishers: 000000000100000002000000
   maxFireHealth: 3
   currentFireHealth: 0
   fireVisualRoot: {fileID: 1428040396}

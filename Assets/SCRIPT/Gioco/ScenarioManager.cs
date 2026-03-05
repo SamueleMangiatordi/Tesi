@@ -31,7 +31,7 @@ public class ScenarioFlowManager : MonoBehaviour
 
     [Header("References (Scenario)")]
     public AlarmSwitch alarmSwitch;
-    public FireTarget fireTarget;
+    public FireTarget[] fireTargets;
 
     [Header("Extinguishers")]
     public ExtinguisherSprayer[] extinguishers; // metti qui i 4 estintori da Inspector
@@ -306,8 +306,16 @@ public class ScenarioFlowManager : MonoBehaviour
         if (alarmSwitch != null)
             alarmSwitch.SetOn(false);
 
-        if (fireTarget != null)
-            fireTarget.ExtinguishImmediateForIdle();
+        if (fireTargets != null && fireTargets.Length > 0)
+        {
+            foreach (var fire in fireTargets)
+            {
+                if (fire != null)
+                {
+                    fire.ExtinguishImmediateForIdle(); // Spegni il fuoco prima di avviarne uno nuovo
+                }
+            }
+        }
 
         yield return StartCoroutine(ResetRoutine());
 
@@ -333,8 +341,8 @@ public class ScenarioFlowManager : MonoBehaviour
             yield return new WaitForSeconds(Mathf.Max(0f, fireStartDelaySeconds));
         }
 
-        if (fireTarget != null)
-            fireTarget.Ignite();
+        ActivateRandomFire();
+
 
         fireActive = true;
         state = ScenarioState.Incendio;
@@ -612,44 +620,17 @@ public class ScenarioFlowManager : MonoBehaviour
         RestartSession(isInitialStart: false);
     }
 
-    /*public void ActivateRandomFire()
+    private void ActivateRandomFire()
     {
-        fireManager.StartFire(); // Imposta l'incendio casuale
-        FireType currentFire = fireManager.GetCurrentFire(); // Ottieni l'incendio attivo
-
-        // Recupera il riferimento a FireTarget
-        FireTarget target = FindObjectOfType<FireTarget>(); // Ottieni il FireTarget dalla scena
-
-        if (target != null && currentFire != null)
+        if (fireTargets != null && fireTargets.Length > 0)
         {
-            currentFire.fireTarget = target; // Imposta il riferimento del FireTarget
+            // Seleziona un fuoco casuale
+            FireTarget selectedFire = fireTargets[Random.Range(0, fireTargets.Length)];
 
-            fireManager.PlaceFire(currentFire); // Posiziona l'incendio nella scena
-            target.Ignite(); // Accendi il fuoco visivamente
-        }
-        else
-        {
-            Debug.LogError("fireTarget o currentFire non sono stati trovati!");
+            // Attiva il fuoco selezionato
+            selectedFire.Ignite(); // Assicurati che Ignite() venga chiamato per attivare il fuoco
         }
     }
 
-    // Quando l'utente seleziona un estintore
-    public void OnExtinguisherUsed(GameObject extinguisherUsed)
-    {
-        // Verifica se l'estintore usato è quello giusto
-        if (extinguisherUsed == fireManager.GetCurrentFire().recommendedExtinguisher ||
-            System.Array.Exists(fireManager.GetCurrentFire().alternativeExtinguishers, element => element == extinguisherUsed))
-        {
-            Debug.Log("Fuoco spento con successo!");
-            FireTarget target = fireManager.GetCurrentFire().fireTarget; // Ottieni il target del fuoco
-            if (target != null)
-            {
-                target.ApplyExtinguish(1f);  // Applicare l'estinzione con una quantità (1f o altro valore che vuoi)
-            }
-        }
-        else
-        {
-            Debug.Log("Estintore sbagliato! Il fuoco non si spegne.");
-        }
-    }*/
+
 }

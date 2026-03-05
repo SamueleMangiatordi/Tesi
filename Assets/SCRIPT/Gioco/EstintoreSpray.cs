@@ -8,6 +8,13 @@ using UnityEngine.XR.Interaction.Toolkit.Interactors;
 #if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem;
 #endif
+public enum ExtinguisherType
+{
+    Acqua,
+    Schiuma,
+    Polvere,
+    CO2
+}
 
 [RequireComponent(typeof(XRGrabInteractable))]
 public class ExtinguisherSprayer : MonoBehaviour
@@ -44,6 +51,9 @@ public class ExtinguisherSprayer : MonoBehaviour
     [Header("Audio")]
     public AudioSource sprayAudio;
 
+    public ExtinguisherType extinguisherType; // Tipo di estintore (Acqua, Schiuma, Polvere, CO2)
+    private FireTarget fireTarget;
+
     [Header("Haptics")]
     public bool enableHaptics = true;
     public float hapticAmplitude = 0.25f;   // 0..1
@@ -61,6 +71,10 @@ public class ExtinguisherSprayer : MonoBehaviour
 
     public string extinguisherName; //variabile per identificare l'estintore
 
+    private void Start()
+    {
+        fireTarget = FindObjectOfType<FireTarget>(); // Ottieni il FireTarget attivo
+    }
 
     private void Awake()
     {
@@ -146,7 +160,10 @@ public class ExtinguisherSprayer : MonoBehaviour
                 Instantiate(sprayHitPrefab, pos, rot);
             }
 
-            fire.ApplyExtinguish(extinguishRate * Time.deltaTime);
+            if (fire != null)
+            {
+                fire.ApplyExtinguish(extinguishRate * Time.deltaTime, extinguisherType);
+            }
         }
 
 

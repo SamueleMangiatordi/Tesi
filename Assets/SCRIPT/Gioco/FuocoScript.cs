@@ -1,8 +1,24 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
+public enum FireClass
+{
+    A,
+    B,
+    C,
+    Elettrico
+}
 
 public class FireTarget : MonoBehaviour
 {
+    [Header("Fire Class")]
+    public FireClass fireClass; // Classe del fuoco (A, B, C, Elettrico)
+
+    // Liste degli estintori per ogni tipo di incendio
+    public List<ExtinguisherType> recommendedExtinguishers = new List<ExtinguisherType>();
+    public List<ExtinguisherType> secondaryExtinguishers = new List<ExtinguisherType>();
+    public List<ExtinguisherType> notRecommendedExtinguishers = new List<ExtinguisherType>();
+
     [Header("Fire Health")]
     public float maxFireHealth = 5f;
     public float currentFireHealth = 0f;
@@ -55,10 +71,17 @@ public class FireTarget : MonoBehaviour
         PlayAll(firePS);
     }
 
-    public void ApplyExtinguish(float amount)
+    public void ApplyExtinguish(float amount, ExtinguisherType typeUsed)
     {
         if (!isBurning) return;
-        if (amount <= 0f) return;
+
+        // Controlla se l'estintore usato può spegnere questo fuoco
+        if (!recommendedExtinguishers.Contains(typeUsed) && !secondaryExtinguishers.Contains(typeUsed))
+        {
+            // Estintore inefficace, esci senza modificare la salute del fuoco
+            Debug.Log("Estintore non efficace per questo fuoco!");
+            return;
+        }
 
         currentFireHealth -= amount;
 
@@ -143,5 +166,38 @@ public class FireTarget : MonoBehaviour
         foreach (var ps in list)
             if (ps != null)
                 ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+    }
+
+    // Metodo per inizializzare la lista degli estintori in base alla classe
+    public void SetFireClass(FireClass fireClass)
+    {
+        this.fireClass = fireClass;
+
+        switch (fireClass)
+        {
+            case FireClass.A:
+                recommendedExtinguishers = new List<ExtinguisherType> { ExtinguisherType.Acqua };
+                secondaryExtinguishers = new List<ExtinguisherType> { ExtinguisherType.Schiuma, ExtinguisherType.Polvere };
+                notRecommendedExtinguishers = new List<ExtinguisherType> { ExtinguisherType.CO2 };
+                break;
+
+            case FireClass.B:
+                recommendedExtinguishers = new List<ExtinguisherType> { ExtinguisherType.Schiuma };
+                secondaryExtinguishers = new List<ExtinguisherType> { ExtinguisherType.CO2, ExtinguisherType.Polvere };
+                notRecommendedExtinguishers = new List<ExtinguisherType> { ExtinguisherType.Acqua };
+                break;
+
+            case FireClass.C:
+                recommendedExtinguishers = new List<ExtinguisherType> { ExtinguisherType.Polvere };
+                secondaryExtinguishers = new List<ExtinguisherType> { ExtinguisherType.CO2 };
+                notRecommendedExtinguishers = new List<ExtinguisherType> { ExtinguisherType.Acqua, ExtinguisherType.Schiuma };
+                break;
+
+            case FireClass.Elettrico:
+                recommendedExtinguishers = new List<ExtinguisherType> { ExtinguisherType.CO2 };
+                secondaryExtinguishers = new List<ExtinguisherType>();
+                notRecommendedExtinguishers = new List<ExtinguisherType> { ExtinguisherType.Acqua, ExtinguisherType.Schiuma, ExtinguisherType.Polvere };
+                break;
+        }
     }
 }
