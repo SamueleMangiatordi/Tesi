@@ -80,6 +80,7 @@ public class ScenarioFlowManager : MonoBehaviour
 
     private bool fireActive = false;
     private bool alarmOn = false;
+    private FireTarget selectedFire; // Il fuoco selezionato e attivo
 
     private ExpectedStep expectedStep = ExpectedStep.AttendiIncendio;
 
@@ -118,18 +119,14 @@ public class ScenarioFlowManager : MonoBehaviour
         defaultFixedDeltaTime = Time.fixedDeltaTime;
     }
 
-    private void Start()
+    private IEnumerator Start()
     {
+        yield return null;
+        yield return new WaitForEndOfFrame(); // Aspetta due frame per sicurezza
+
+
         CacheExtinguishersStartPose();
 
-        /*fireManager = FindObjectOfType<FireManager>();
-        if (fireManager == null)
-        {
-            Debug.LogError("FireManager non trovato nella scena!");
-            return;
-        }
-
-        ActivateRandomFire();*/
         RestartSession(isInitialStart: true);
     }
 
@@ -360,7 +357,8 @@ public class ScenarioFlowManager : MonoBehaviour
         ConsoleLogger.Log(isInitialStart ? "start_session" : "restart_session");
 
         // Guida solo se feedback ON
-        ShowGuidance("Incendio attivo. Attiva l'allarme.", 3.0f);
+        string classe = selectedFire.fireClass.ToString(); // Converte l'enum in stringa
+        ShowGuidance($"Incendio di classe {classe} attivo. Attiva l'allarme.", 3.0f);
 
         expectedStep = ExpectedStep.AttivaAllarme;
     }
@@ -498,25 +496,48 @@ public class ScenarioFlowManager : MonoBehaviour
 
         currentExt = ext;
 
+        // Controlla se l'estintore viene preso prima che l'allarme sia stato attivato
+        if (expectedStep == ExpectedStep.AttivaAllarme)
+        {
+            EndAsFailed("Hai preso l'estintore prima di attivare l'allarme");
+            return;
+        }
+
+        // Se c'è un incendio attivo, verifica se l'estintore è corretto
+        if (fireActive && selectedFire != null)
+        {
+            bool isEffective = selectedFire.recommendedExtinguishers.Contains(ext.extinguisherType) ||
+                               selectedFire.secondaryExtinguishers.Contains(ext.extinguisherType);
+
+            if (isEffective)
+            {
+                // Estintore corretto
+                extinguisherCollected = true;
+                expectedStep = ExpectedStep.SpegniIncendio;
+
+                ConsoleLogger.Log("extinguisher_grabbed", $"name={ext.name} t={SessionElapsed:0.00}s");
+                ExperimentFileLogger.MarkGrab(SessionElapsed);
+
+                ShowFeedback("Estintore raccolto", 2.0f);
+                ShowGuidance("Estintore corretto, spegni l'incendio.", 2.5f);
+                return;
+            }
+            else
+            {
+                // Estintore non corretto
+                ShowFeedback($"L'estintore \"{ext.extinguisherType}\" non è efficace per questo incendio.", 3.0f);
+                return;
+            }
+        }
+
+        // Se prendi l’estintore prima dell’inizio dell’incendio
         if (!fireActive && expectedStep != ExpectedStep.SpegniAllarme && expectedStep != ExpectedStep.Fine)
         {
-            EndAsFailed("hai preso l'estintore prima dell'inizio dell'incendio");
+            EndAsFailed("Hai preso l'estintore prima dell'inizio dell'incendio");
             return;
         }
 
-        if (expectedStep == ExpectedStep.PrendiEstintore)
-        {
-            extinguisherCollected = true;
-            expectedStep = ExpectedStep.SpegniIncendio;
-
-            ConsoleLogger.Log("extinguisher_grabbed", $"name={ext.name} t={SessionElapsed:0.00}s");
-            ExperimentFileLogger.MarkGrab(SessionElapsed);
-
-            ShowFeedback("Estintore raccolto", 2.0f);
-            ShowGuidance("Spegni l'incendio.", 2.5f);
-            return;
-        }
-
+        // Se già raccolto e fuori ordine
         if (extinguisherCollected)
         {
             ExperimentFileLogger.MarkRegrab(SessionElapsed);
@@ -524,13 +545,8 @@ public class ScenarioFlowManager : MonoBehaviour
             return;
         }
 
-        if (expectedStep == ExpectedStep.AttivaAllarme)
-        {
-            EndAsFailed("hai preso l'estintore prima di attivare l'allarme");
-            return;
-        }
-
-        EndAsFailed("hai preso l'estintore in un momento non previsto");
+        // Se prendi l'estintore fuori ordine, termina la sessione
+        EndAsFailed("Hai preso l'estintore in un momento non previsto");
     }
 
     public bool CanStartSpray(ExtinguisherSprayer ext)
@@ -538,6 +554,17 @@ public class ScenarioFlowManager : MonoBehaviour
         if (isResetting || attemptEnded) return false;
 
         currentExt = ext;
+
+        // Verifica che l'estintore sia valido prima di spruzzare
+        bool isEffective = selectedFire.recommendedExtinguishers.Contains(ext.extinguisherType) ||
+                           selectedFire.secondaryExtinguishers.Contains(ext.extinguisherType);
+
+        if (!isEffective)
+        {
+            // Se l'estintore è errato, termina la sessione con il messaggio
+            EndAsFailed("Hai utilizzato un estintore errato per questo tipo di incendio");
+            return false; // Non permette lo spruzzo
+        }
 
         if (!fireActive)
         {
@@ -625,7 +652,7 @@ public class ScenarioFlowManager : MonoBehaviour
         if (fireTargets != null && fireTargets.Length > 0)
         {
             // Seleziona un fuoco casuale
-            FireTarget selectedFire = fireTargets[Random.Range(0, fireTargets.Length)];
+            selectedFire = fireTargets[Random.Range(0, fireTargets.Length)];
 
             // Attiva il fuoco selezionato
             selectedFire.Ignite(); // Assicurati che Ignite() venga chiamato per attivare il fuoco
