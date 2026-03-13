@@ -3,8 +3,6 @@ using UnityEngine.XR.Interaction.Toolkit;
 using UnityEngine.XR.Interaction.Toolkit.Interactables;
 using UnityEngine.XR.Interaction.Toolkit.Interactors;
 
-
-
 #if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem;
 #endif
@@ -302,7 +300,6 @@ public class ExtinguisherSprayer : MonoBehaviour
 
         ConsoleLogger.Log("safety_pin_removed");
     }
-
 
     private void ApplySafetyPinVisual()
     {

@@ -8,6 +8,12 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/ScenaProva.unity
     guid: 99c9720ab356a0642a771bea13969a05
+  - enabled: 1
+    path: Assets/Scenes/LoadingScene.unity
+    guid: 4a3a841653f9da746a3968e0a931249d
+  - enabled: 1
+    path: Assets/Scenes/Menu.unity
+    guid: c15d0491334c3f140873d7558949dea7
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
     com.unity.xr.management.loader_settings: {fileID: 11400000, guid: 3affcbdc933972d42aefa1401e9b7031, type: 2}

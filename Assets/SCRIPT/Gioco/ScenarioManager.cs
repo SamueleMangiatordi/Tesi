@@ -318,6 +318,10 @@ public class ScenarioFlowManager : MonoBehaviour
 
         isResetting = false;
 
+        // inizio log su file (un tentativo = una sessione)
+        ExperimentFileLogger.BeginAttempt(ExperimentSettings.FeedbackOn, ExperimentSettings.FileLoggingOn);
+        ConsoleLogger.Log(isInitialStart ? "start_session" : "restart_session");
+
         plannedIgnitionTime = Time.time + Mathf.Max(0f, fireStartDelaySeconds);
 
         // Questo lo mostriamo SOLO se feedback ON (tu hai detto solo countdown)
@@ -350,11 +354,7 @@ public class ScenarioFlowManager : MonoBehaviour
 
         ConsoleLogger.SetTimeProvider(() => SessionElapsed);
 
-        // inizio log su file (un tentativo = una sessione)
-        ExperimentFileLogger.BeginAttempt(ExperimentSettings.FeedbackOn, ExperimentSettings.FileLoggingOn);
 
-
-        ConsoleLogger.Log(isInitialStart ? "start_session" : "restart_session");
 
         // Guida solo se feedback ON
         string classe = selectedFire.fireClass.ToString(); // Converte l'enum in stringa
