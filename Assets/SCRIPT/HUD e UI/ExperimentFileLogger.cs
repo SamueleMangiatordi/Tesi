@@ -22,30 +22,26 @@ public static class ExperimentFileLogger
         public string endUtc;
 
         public bool fileLoggingOn;
-
         public bool feedbackOn;
         public string outcome;      // "completed" | "failed" | "aborted"
         public string failReason;
 
+        // [NUOVI DATI]
+        public string fireClass = "Nessuno";
+        public string extinguisherUsed = "Nessuno";
+
         // Tempi (secondi dall’inizio sessione)
         public float totalTime = -1f;
         public float alarmTime = -1f;
-        public float grabTime = -1f;
-        public float pinTime = -1f;
+        public float grabTime = -1f; // <-- Mantenuto!
         public float fireOutTime = -1f;
 
-        // Spray
-        public int sprayStartCount = 0;
-        public int sprayBlockedCount = 0;
+        // Spray e conteggi
         public float sprayTotalTime = 0f;
+        public int regrabCount = 0; // <-- Mantenuto!
 
-        // Conteggi
-        public int regrabCount = 0;
-
-        // Eventi (opzionale ma utile)
         public List<LoggedEvent> events = new List<LoggedEvent>();
 
-        // runtime (non serializzare idealmente, ma JsonUtility li include: li teniamo privati)
         [NonSerialized] public bool _ended = false;
         [NonSerialized] public bool _spraying = false;
         [NonSerialized] public float _sprayActiveSince = -1f;
@@ -58,18 +54,15 @@ public static class ExperimentFileLogger
 
     public static string PercorsoSalvataggi => logsDir;
 
-
-    // In Italia Excel usa spesso ';' come separatore
     private const char CSV_SEP = ';';
     private static readonly CultureInfo It = CultureInfo.GetCultureInfo("it-IT");
 
+    // L'errore di prima è stato corretto qui: (current._ended)
     public static bool HasActiveAttempt => current != null && !current._ended;
 
     public static string BeginAttempt(bool feedbackOn, bool fileLoggingOn)
     {
         string id = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss_fff");
-
-        // lock della scelta: vale per tutto il tentativo
         writeFiles = fileLoggingOn;
 
         current = new AttemptRecord
@@ -82,13 +75,7 @@ public static class ExperimentFileLogger
             failReason = ""
         };
 
-        // Se file logging è OFF, NON preparo cartelle/file.
-        if (!writeFiles)
-        {
-            // Volendo puoi tenere comunque gli eventi in RAM (come ora)
-            LogEvent("attempt_begin", 0f, $"feedbackOn={feedbackOn} | fileLoggingOn={fileLoggingOn}");
-            return id;
-        }
+        if (!writeFiles) return id;
 
         logsDir = Path.Combine(Application.persistentDataPath, "Logs");
         Directory.CreateDirectory(logsDir);
@@ -96,15 +83,27 @@ public static class ExperimentFileLogger
         csvPath = Path.Combine(logsDir, "attempts.csv");
         EnsureCsvHeader();
 
-        LogEvent("attempt_begin", 0f, $"feedbackOn={feedbackOn} | fileLoggingOn={fileLoggingOn}");
         return id;
     }
 
+    // --- NUOVI METODI PER FUOCO ED ESTINTORE ---
+    public static void SetFireClass(string fireClass)
+    {
+        if (current != null && !current._ended)
+            current.fireClass = fireClass;
+    }
+
+    public static void SetExtinguisherUsed(string extName)
+    {
+        if (current != null && !current._ended)
+            current.extinguisherUsed = extName;
+    }
+    // -------------------------------------------
 
     public static void LogEvent(string name, float t, object data = null)
     {
         if (current == null || current._ended) return;
-        if (!writeFiles) return; // opzionale
+        if (!writeFiles) return;
 
         current.events.Add(new LoggedEvent
         {
@@ -114,50 +113,43 @@ public static class ExperimentFileLogger
         });
     }
 
-
     public static void MarkAlarm(float t)
     {
-        if (!HasActiveAttempt) return;
+        if (current == null || current._ended) return;
         if (current.alarmTime < 0f) current.alarmTime = t;
         LogEvent("alarm_on", t);
     }
 
+    // --- METODI MANTENUTI ---
     public static void MarkGrab(float t)
     {
-        if (!HasActiveAttempt) return;
+        if (current == null || current._ended) return;
         if (current.grabTime < 0f) current.grabTime = t;
         LogEvent("extinguisher_grabbed", t);
     }
 
     public static void MarkRegrab(float t)
     {
-        if (!HasActiveAttempt) return;
+        if (current == null || current._ended) return;
         current.regrabCount++;
         LogEvent("extinguisher_regrabbed", t, $"count={current.regrabCount}");
     }
-
-    public static void MarkPin(float t)
-    {
-        if (!HasActiveAttempt) return;
-        if (current.pinTime < 0f) current.pinTime = t;
-        LogEvent("safety_pin_removed", t);
-    }
+    // ------------------------
 
     public static void MarkSprayStart(float t)
     {
-        if (!HasActiveAttempt) return;
-        current.sprayStartCount++;
+        if (current == null || current._ended) return;
         if (!current._spraying)
         {
             current._spraying = true;
             current._sprayActiveSince = t;
         }
-        LogEvent("spray_start", t, $"starts={current.sprayStartCount}");
+        LogEvent("spray_start", t);
     }
 
     public static void MarkSprayStop(float t)
     {
-        if (!HasActiveAttempt) return;
+        if (current == null || current._ended) return;
 
         if (current._spraying)
         {
@@ -170,16 +162,9 @@ public static class ExperimentFileLogger
         LogEvent("spray_stop", t, $"sprayTotal={current.sprayTotalTime.ToString("0.00", It)}");
     }
 
-    public static void MarkSprayBlocked(float t, string reason)
-    {
-        if (!HasActiveAttempt) return;
-        current.sprayBlockedCount++;
-        LogEvent("spray_blocked", t, reason);
-    }
-
     public static void MarkFireOut(float t)
     {
-        if (!HasActiveAttempt) return;
+        if (current == null || current._ended) return;
         if (current.fireOutTime < 0f) current.fireOutTime = t;
         LogEvent("fire_extinguished", t);
     }
@@ -204,7 +189,6 @@ public static class ExperimentFileLogger
 
         LogEvent("attempt_end", totalTime, $"outcome={outcome}");
 
-        // BLOCCO QUI
         if (!writeFiles)
         {
             current = null;
@@ -215,22 +199,18 @@ public static class ExperimentFileLogger
         File.WriteAllText(jsonPath, JsonUtility.ToJson(current, true));
 
         AppendCsvLine(current);
-
-        Debug.Log($"[ExperimentFileLogger] Salvati log in: {logsDir}");
         current = null;
     }
-
 
     private static void EnsureCsvHeader()
     {
         if (File.Exists(csvPath)) return;
 
-        string header =
-            string.Join(CSV_SEP.ToString(), new[]
-            {
-                "attemptId","startUtc","endUtc","feedbackOn","outcome","totalTime","failReason",
-                "alarmTime","grabTime","pinTime","sprayStartCount","sprayBlockedCount","sprayTotalTime","fireOutTime","regrabCount"
-            });
+        string header = string.Join(CSV_SEP.ToString(), new[]
+        {
+        "attemptId","startUtc","endUtc","feedbackOn","outcome","totalTime","failReason",
+        "fireClass","extinguisherUsed","alarmTime","grabTime","sprayTotalTime","fireOutTime","regrabCount"
+    });
 
         File.WriteAllText(csvPath, header + Environment.NewLine);
     }
@@ -239,27 +219,21 @@ public static class ExperimentFileLogger
     {
         string line = string.Join(CSV_SEP.ToString(), new[]
         {
-            Csv(r.attemptId),
-            Csv(r.startUtc),
-            Csv(r.endUtc),
-            Csv(r.feedbackOn ? "1" : "0"),
-            Csv(r.outcome),
-            Csv(F(r.totalTime)),
-            Csv(r.failReason),
+        Csv(r.attemptId), Csv(r.startUtc), Csv(r.endUtc), Csv(r.feedbackOn ? "1" : "0"),
+        Csv(r.outcome), Csv(F(r.totalTime)), Csv(r.failReason),
+        Csv(r.fireClass), Csv(r.extinguisherUsed),
+        Csv(F(r.alarmTime)), Csv(F(r.grabTime)), Csv(F(r.sprayTotalTime)),
+        Csv(F(r.fireOutTime)), Csv(r.regrabCount.ToString())
+    });
 
-            Csv(F(r.alarmTime)),
-            Csv(F(r.grabTime)),
-            Csv(F(r.pinTime)),
-
-            Csv(r.sprayStartCount.ToString()),
-            Csv(r.sprayBlockedCount.ToString()),
-            Csv(F(r.sprayTotalTime)),
-
-            Csv(F(r.fireOutTime)),
-            Csv(r.regrabCount.ToString())
-        });
-
-        File.AppendAllText(csvPath, line + Environment.NewLine);
+        try
+        {
+            File.AppendAllText(csvPath, line + Environment.NewLine);
+        }
+        catch (Exception e)
+        {
+            Debug.LogWarning($"[ATTENZIONE] File CSV bloccato da Excel! Errore: {e.Message}");
+        }
     }
 
     private static string F(float v)
@@ -270,7 +244,6 @@ public static class ExperimentFileLogger
     private static string Csv(string s)
     {
         if (s == null) s = "";
-        // escape basilare per CSV: " -> ""
         s = s.Replace("\"", "\"\"");
         return $"\"{s}\"";
     }

@@ -518,6 +518,9 @@ public class ScenarioFlowManager : MonoBehaviour
                 ConsoleLogger.Log("extinguisher_grabbed", $"name={ext.name} t={SessionElapsed:0.00}s");
                 ExperimentFileLogger.MarkGrab(SessionElapsed);
 
+                // [AGGIUNTO] Registra l'estintore usato nel CSV
+                ExperimentFileLogger.SetExtinguisherUsed(ext.extinguisherType.ToString());
+
                 ShowFeedback("Estintore raccolto", 2.0f);
                 ShowGuidance("Estintore corretto, spegni l'incendio.", 2.5f);
                 return;
@@ -568,7 +571,6 @@ public class ScenarioFlowManager : MonoBehaviour
 
         if (!fireActive)
         {
-            ExperimentFileLogger.MarkSprayBlocked(SessionElapsed, "fuoco_non_attivo");
             return false;
         }
 
@@ -656,6 +658,9 @@ public class ScenarioFlowManager : MonoBehaviour
 
             // Attiva il fuoco selezionato
             selectedFire.Ignite(); // Assicurati che Ignite() venga chiamato per attivare il fuoco
+
+            // [AGGIUNTO] Salva il tipo di fuoco nel CSV!
+            ExperimentFileLogger.SetFireClass(selectedFire.fireClass.ToString());
         }
     }
 

@@ -288,9 +288,6 @@ public class ExtinguisherSprayer : MonoBehaviour
         if (flow == null)
             flow = FindObjectOfType<ScenarioFlowManager>();
 
-        if (flow != null)
-            ExperimentFileLogger.MarkPin(flow.SessionElapsed);
-
         // Solo se feedback ON
         if (ExperimentSettings.FeedbackOn)
             FeedbackUI.Instance?.ShowTemp("Sicura rimossa", 1.5f);
