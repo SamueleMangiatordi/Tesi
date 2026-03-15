@@ -48,6 +48,10 @@ public class ExtinguisherSprayer : MonoBehaviour
 
     [Header("Audio")]
     public AudioSource sprayAudio;
+    public AudioSource clackAudioSource; // NUOVO: Audio per quando si preme a vuoto
+
+    [Header("Negative Feedback (Sicura)")]
+    public SafetyPinFeedback pinFeedbackScript; // NUOVO: Riferimento al lampeggio della sicura
 
     public ExtinguisherType extinguisherType; // Tipo di estintore (Acqua, Schiuma, Polvere, CO2)
     private FireTarget fireTarget;
@@ -219,13 +223,29 @@ public class ExtinguisherSprayer : MonoBehaviour
 
     public void StartSpray()
     {
+        // SE LA SICURA E' ANCORA INSERITA...
         if (requireSafetyPin && !safetyPinRemoved)
         {
+            // 1. Feedback Visivo (Fa brillare la sicura)
+            if (pinFeedbackScript != null)
+                pinFeedbackScript.StartPulse();
+
+            // 2. Feedback Audio (Suono del blocco metallico)
+            if (clackAudioSource != null && !clackAudioSource.isPlaying)
+                clackAudioSource.Play();
+
+            // 3. Feedback Tattile (Un singolo colpo secco e forte sul controller)
+            if (enableHaptics && hapticController != null)
+                hapticController.SendHapticImpulse(0.8f, 0.1f); // 0.8 è bello forte!
+
+            // Mostra a schermo il messaggio (come avevi già fatto)
             if (ExperimentSettings.FeedbackOn)
                 FeedbackUI.Instance?.ShowTemp("Rimuovi la sicura prima di spruzzare", 2.0f);
-            return;
+
+            return; // Blocca qui l'esecuzione: non spruzza nulla
         }
 
+        // SE INVECE LA SICURA E' TOLTA, PROCEDE NORMALMENTE:
         if (chargeRemaining <= 0f)
         {
             NotifyEmptyOnce();
@@ -245,7 +265,6 @@ public class ExtinguisherSprayer : MonoBehaviour
 
             if (sprayAudio != null && !sprayAudio.isPlaying)
                 sprayAudio.Play();
-
         }
 
         flow?.OnSprayStart();

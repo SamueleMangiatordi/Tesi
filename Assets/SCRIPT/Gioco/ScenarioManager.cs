@@ -414,24 +414,31 @@ public class ScenarioFlowManager : MonoBehaviour
             if (ext == null) continue;
 
             var go = ext.gameObject;
-            go.SetActive(false);
-            yield return null;
-
-            if (extStartPose.TryGetValue(ext, out var pose))
-                ext.transform.SetPositionAndRotation(pose.pos, pose.rot);
-
-            go.SetActive(true);
-            yield return null;
-
-            ext.ResetExtinguisher();
-
             var rb = ext.GetComponent<Rigidbody>();
+
+            // 1. Blocchiamo subito la fisica prima ancora di spostarlo
             if (rb != null)
             {
                 rb.linearVelocity = Vector3.zero;
                 rb.angularVelocity = Vector3.zero;
-                rb.Sleep();
+                rb.isKinematic = true; 
             }
+
+            // 2. Disattiviamo per far sganciare la mano VR (se lo stavamo tenendo)
+            go.SetActive(false);
+
+            // Aspettiamo un frame affinché Unity e l'XR Interaction disconnettano le mani
+            yield return null;
+
+            // 3. Teletrasporto alla posizione originale
+            if (extStartPose.TryGetValue(ext, out var pose))
+                ext.transform.SetPositionAndRotation(pose.pos, pose.rot);
+
+            // 4. Riattiviamo l'oggetto
+            go.SetActive(true);
+
+            // 5. Resettiamo le variabili interne (sicura, spruzzo, ecc.)
+            ext.ResetExtinguisher();
         }
 
         ConsoleLogger.Log("extinguishers_pose_reset");
