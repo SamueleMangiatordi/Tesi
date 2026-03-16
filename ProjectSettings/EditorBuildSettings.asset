@@ -5,15 +5,15 @@ EditorBuildSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 2
   m_Scenes:
-  - enabled: 1
+  - enabled: 0
     path: Assets/Scenes/ScenaProvaVecchia.unity
     guid: 99c9720ab356a0642a771bea13969a05
   - enabled: 1
-    path: Assets/Scenes/LoadingScene.unity
-    guid: 4a3a841653f9da746a3968e0a931249d
-  - enabled: 1
     path: Assets/Scenes/Menu.unity
     guid: c15d0491334c3f140873d7558949dea7
+  - enabled: 1
+    path: Assets/Scenes/LoadingScene.unity
+    guid: 4a3a841653f9da746a3968e0a931249d
   - enabled: 1
     path: Assets/Scenes/ScenaProva.unity
     guid: 8a8dd363fa1d67d48a8d1f8b2032653f
