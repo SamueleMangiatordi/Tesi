@@ -1,2 +1,2 @@
-Versione di prova con simulatore.
+Versione di prova con simulatore;
 File .exe
