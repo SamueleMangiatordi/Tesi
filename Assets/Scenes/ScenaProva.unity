@@ -3602,9 +3602,9 @@ RectTransform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 150903674}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 3}
-  m_LocalScale: {x: 0.001069167, y: 0.0010691672, z: 0.0010691672}
-  m_ConstrainProportionsScale: 0
+  m_LocalPosition: {x: 0, y: 0, z: 1}
+  m_LocalScale: {x: 0.0006, y: 0.0006, z: 0.0006}
+  m_ConstrainProportionsScale: 1
   m_Children:
   - {fileID: 800710502}
   - {fileID: 1537795034}
@@ -11604,14 +11604,14 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 328195801}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: 0.6681927, z: -0, w: 0.7439882}
-  m_LocalPosition: {x: 0.56, y: 1.119, z: 0.19}
+  m_LocalRotation: {x: -0, y: 0.7359016, z: -0, w: -0.6770885}
+  m_LocalPosition: {x: -0.76, y: 1.119, z: -0.25}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1358871531}
   m_Father: {fileID: 698172923}
-  m_LocalEulerAnglesHint: {x: 0, y: 83.855, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 265.233, z: 0}
 --- !u!1 &330585543
 GameObject:
   m_ObjectHideFlags: 0
@@ -12089,7 +12089,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 130, y: -90}
+  m_AnchoredPosition: {x: 230, y: -200}
   m_SizeDelta: {x: 149.99994, y: 150}
   m_Pivot: {x: 0, y: 1}
 --- !u!114 &359192542
@@ -13662,13 +13662,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 415093197}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0.11949918, z: -0, w: 0.9928343}
+  m_LocalRotation: {x: -0, y: 0.9951327, z: -0, w: 0.098545134}
   m_LocalPosition: {x: -0.014, y: 2.476, z: -0.307}
   m_LocalScale: {x: 5, y: 5, z: 5}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1720333664}
-  m_LocalEulerAnglesHint: {x: 0, y: -13.726, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 168.689, z: 0}
 --- !u!1 &427857649
 GameObject:
   m_ObjectHideFlags: 0
@@ -15295,13 +15295,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 540322463}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: 0.6069214, z: -0, w: 0.79476196}
+  m_LocalRotation: {x: -0, y: 0.7480895, z: -0, w: -0.663598}
   m_LocalPosition: {x: -0.22, y: 2.476, z: 0.001}
   m_LocalScale: {x: 5, y: 5, z: 5}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 698172923}
-  m_LocalEulerAnglesHint: {x: 0, y: 74.734, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 263.15, z: 0}
 --- !u!1001 &545486126
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -22635,6 +22635,7 @@ GameObject:
   - component: {fileID: 698172919}
   - component: {fileID: 698172918}
   - component: {fileID: 698172917}
+  - component: {fileID: 698172927}
   - component: {fileID: 698172916}
   - component: {fileID: 698172924}
   - component: {fileID: 698172925}
@@ -23256,6 +23257,18 @@ Animation:
   m_AnimatePhysics: 0
   m_UpdateMode: 0
   m_CullingType: 0
+--- !u!114 &698172927
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 698172915}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 68eee2f2c16cc8c46ab24d78ea5cb912, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BloccaJoystickPresa
 --- !u!1001 &701065738
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -23642,14 +23655,14 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 723593310}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: 0.6681927, z: -0, w: 0.7439882}
-  m_LocalPosition: {x: 0.56, y: 1.119, z: 0.19}
+  m_LocalRotation: {x: 0.002211308, y: -0.7134451, z: 0.008266318, w: 0.7006589}
+  m_LocalPosition: {x: -0.94, y: 1.12, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1520700254}
   m_Father: {fileID: 1892689061}
-  m_LocalEulerAnglesHint: {x: 0, y: 83.855, z: 0}
+  m_LocalEulerAnglesHint: {x: 0.853, y: -91.032, z: 0.483}
 --- !u!1 &724110898
 GameObject:
   m_ObjectHideFlags: 0
@@ -26172,6 +26185,7 @@ GameObject:
   - component: {fileID: 841314191}
   - component: {fileID: 841314190}
   - component: {fileID: 841314189}
+  - component: {fileID: 841314198}
   - component: {fileID: 841314188}
   - component: {fileID: 841314197}
   - component: {fileID: 841314196}
@@ -26776,6 +26790,18 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+--- !u!114 &841314198
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 841314187}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 68eee2f2c16cc8c46ab24d78ea5cb912, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BloccaJoystickPresa
 --- !u!1001 &850310024
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -29924,14 +29950,14 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1019088909}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.0009797763, y: -0.060710877, z: -0.0075175078, w: 0.9981266}
-  m_LocalPosition: {x: -0.15, y: 1.12, z: 0.66}
+  m_LocalRotation: {x: -0.0074652396, y: -0.9943383, z: 0.0013202667, w: -0.10599042}
+  m_LocalPosition: {x: 0.29, y: 1.11, z: -1.02}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 195679448}
   m_Father: {fileID: 1720333664}
-  m_LocalEulerAnglesHint: {x: -0.164, y: -6.96, z: -0.853}
+  m_LocalEulerAnglesHint: {x: 0.241, y: -192.167, z: 0.835}
 --- !u!1001 &1020905862
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -30240,8 +30266,8 @@ RectTransform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1039176462}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 3}
-  m_LocalScale: {x: 0.002, y: 0.002, z: 0.002}
+  m_LocalPosition: {x: 0, y: 0, z: 1}
+  m_LocalScale: {x: 0.0008, y: 0.0008, z: 0.0008}
   m_ConstrainProportionsScale: 1
   m_Children:
   - {fileID: 1695504181}
@@ -30678,8 +30704,8 @@ RectTransform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1052521575}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 3}
-  m_LocalScale: {x: 0.002, y: 0.002, z: 0.002}
+  m_LocalPosition: {x: 0, y: 0, z: 1}
+  m_LocalScale: {x: 0.0008, y: 0.0008, z: 0.0008}
   m_ConstrainProportionsScale: 1
   m_Children:
   - {fileID: 1906968724}
@@ -40758,7 +40784,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6598815579406187037, guid: 18ddb545287c546e19cc77dc9fbb2189, type: 3}
       propertyPath: m_IsActive
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -53642,7 +53668,7 @@ RectTransform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1537795033}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0.0003066177}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -62323,6 +62349,7 @@ GameObject:
   - component: {fileID: 1720333660}
   - component: {fileID: 1720333659}
   - component: {fileID: 1720333658}
+  - component: {fileID: 1720333667}
   - component: {fileID: 1720333657}
   - component: {fileID: 1720333665}
   - component: {fileID: 1720333666}
@@ -62927,6 +62954,18 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+--- !u!114 &1720333667
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1720333656}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 68eee2f2c16cc8c46ab24d78ea5cb912, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BloccaJoystickPresa
 --- !u!1 &1734539722
 GameObject:
   m_ObjectHideFlags: 0
@@ -65131,6 +65170,7 @@ GameObject:
   - component: {fileID: 1892689057}
   - component: {fileID: 1892689056}
   - component: {fileID: 1892689055}
+  - component: {fileID: 1892689064}
   - component: {fileID: 1892689054}
   - component: {fileID: 1892689063}
   - component: {fileID: 1892689062}
@@ -65735,6 +65775,18 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+--- !u!114 &1892689064
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1892689053}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 68eee2f2c16cc8c46ab24d78ea5cb912, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BloccaJoystickPresa
 --- !u!1001 &1904417940
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -66568,6 +66620,10 @@ PrefabInstance:
       value: 7
       objectReference: {fileID: 0}
     - target: {fileID: 3074471628601745017, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
+      propertyPath: m_CastDistance
+      value: 1.2
+      objectReference: {fileID: 0}
+    - target: {fileID: 3074471628601745017, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
       propertyPath: m_RaycastMask.m_Bits
       value: 2147483745
       objectReference: {fileID: 0}
@@ -66578,6 +66634,10 @@ PrefabInstance:
     - target: {fileID: 4053579577978487484, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
       propertyPath: m_PhysicsLayerMask.m_Bits
       value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5456733348963664102, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
+      propertyPath: m_CastDistance
+      value: 1.2
       objectReference: {fileID: 0}
     - target: {fileID: 5456733348963664102, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
       propertyPath: m_RaycastMask.m_Bits
@@ -67390,13 +67450,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1971959708}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: 0.6069214, z: -0, w: 0.79476196}
+  m_LocalRotation: {x: -0, y: -0.7172045, z: -0, w: 0.6968629}
   m_LocalPosition: {x: -0.22, y: 2.476, z: 0.001}
   m_LocalScale: {x: 5, y: 5, z: 5}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1892689061}
-  m_LocalEulerAnglesHint: {x: 0, y: 74.734, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: -91.648, z: 0}
 --- !u!1 &1973248467
 GameObject:
   m_ObjectHideFlags: 0
