@@ -6,6 +6,8 @@ public class FeedbackUI : MonoBehaviour
     public static FeedbackUI Instance { get; private set; }
 
     [Header("UI")]
+    [Tooltip("Trascina qui l'AiutiContainer")]
+    public GameObject container; // Il contenitore padre (sfondo + testo)
     public TMP_Text text;
 
     private void Awake()
@@ -26,15 +28,27 @@ public class FeedbackUI : MonoBehaviour
     public void Show(string msg)
     {
         if (text == null) return;
-        text.gameObject.SetActive(true);
+
         text.text = msg;
+
+        // Attiva il contenitore intero
+        if (container != null)
+            container.SetActive(true);
+        else
+            text.gameObject.SetActive(true); // Fallback di sicurezza
     }
 
     public void Clear()
     {
         if (text == null) return;
+
         text.text = "";
-        text.gameObject.SetActive(true);
+
+        // Disattiva il contenitore in modo che scompaia anche lo sfondo
+        if (container != null)
+            container.SetActive(false);
+        else
+            text.gameObject.SetActive(false); // Corretto da true a false
     }
 
     private void ClearLater() => Clear();
