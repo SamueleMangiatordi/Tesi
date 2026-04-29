@@ -52,5 +52,4 @@ Ecco una panoramica di dove trovare i file principali:
 
 ## Note per lo Sviluppo (Best Practices)
 
-* **Punto di Ingresso:** Il gioco deve sempre essere avviato dalla scena `Menu` per inizializzare correttamente i Singleton.
-* **Branch
+* **Punto di Ingresso:** Il gioco deve sempre essere avviato dalla scena `Menu` per inizializzare correttamente i Singleton nel caso in cui venga avviato da unity.
