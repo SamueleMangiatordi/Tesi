@@ -36,12 +36,10 @@ Questo progetto è ottimizzato per **Meta Quest 3**.
 2. Premi **Play** dalla scena "Menu".
 
 ### Opzione B: Installazione Standalone (APK)
-1. Da File > Build Profiles > Seleziona Meta QUEST.
-2. Se non sono già aggiunte, aggiungere alla Scene List, nel seguente ordine: 0. Menu - 1. LoadingScene - 2. ScenaProva.
-3. Genera la build da Unity (`Build`).
-4. Usa **SideQuest** o **Meta Quest Developer Hub** per installare l'APK sul visore.
-5. Nel visore, vai in **Libreria App**, clicca sulla barra di ricerca e seleziona **Fonti Sconosciute** dal menu a tendina.
-6. Avvia `TESI`.
+1. Scarica .apk tramite la sezione "Releases" di GitHub.
+2. Usa **SideQuest** o **Meta Quest Developer Hub** per installare l'APK sul visore.
+3. Nel visore, vai in **Libreria App**, clicca sulla barra di ricerca e seleziona **Fonti Sconosciute** dal menu a tendina.
+4. Avvia `TESI`.
 
 ## Struttura del Progetto
 
