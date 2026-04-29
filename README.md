@@ -1,2 +1,2 @@
 Versione di prova con simulatore;
-File .exe
+Genera un File .exe: OBSOLETO
